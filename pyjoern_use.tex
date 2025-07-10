@@ -1,0 +1,521 @@
+```tex
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[japanese]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{tocloft}
+\usepackage{array}
+\usepackage{longtable}
+
+\geometry{margin=2.5cm}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{PyJoern基本ガイド}
+\fancyhead[R]{\thepage}
+
+% コードスタイル設定
+\lstdefinestyle{pythonstyle}{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    commentstyle=\color{green!50!black},
+    stringstyle=\color{red},
+    numberstyle=\tiny\color{gray},
+    breaklines=true,
+    showstringspaces=false,
+    frame=single,
+    tabsize=4
+}
+\lstset{style=pythonstyle}
+
+\title{\textbf{PyJoern基本ガイド}\\
+\large Pythonコード静的解析ツールの基本的な使い方}
+\author{静的解析研究チーム}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+\section{はじめに}
+
+PyJoernは、Pythonコードの静的解析を行うためのツールです。Joern（静的解析プラットフォーム）のPython用バインディングとして、コードの構造を解析し、制御フローグラフ（CFG）や抽象構文木（AST）を生成します。
+
+\subsection{主な機能}
+\begin{itemize}
+    \item 制御フローグラフ（CFG）の生成
+    \item 抽象構文木（AST）の生成
+    \item 関数の基本情報取得
+    \item コードの構造解析
+\end{itemize}
+
+\section{環境設定}
+
+\subsection{インストール}
+
+\begin{lstlisting}[language=bash]
+# 仮想環境の作成
+python -m venv pyjoern
+
+# 仮想環境の有効化（Windows）
+pyjoern\Scripts\activate
+
+# 仮想環境の有効化（Linux/Mac）
+source pyjoern/bin/activate
+
+# PyJoernのインストール
+pip install pyjoern networkx
+\end{lstlisting}
+
+\subsection{動作確認}
+
+\begin{lstlisting}
+from pyjoern import parse_source
+print("PyJoern installed successfully!")
+\end{lstlisting}
+
+\section{基本的なAPI}
+
+PyJoernには主に2つのAPIがあります：
+
+\subsection{parse\_source() - 完全な解析}
+\begin{lstlisting}
+from pyjoern import parse_source
+
+functions = parse_source("example.py")
+\end{lstlisting}
+
+\subsection{fast\_cfgs\_from\_source() - 高速CFG生成}
+\begin{lstlisting}
+from pyjoern import fast_cfgs_from_source
+
+cfgs = fast_cfgs_from_source("example.py")
+\end{lstlisting}
+
+\section{parse\_source vs fast\_cfgs\_from\_source}
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{項目} & \textbf{parse\_source} & \textbf{fast\_cfgs\_from\_source} \\
+\hline
+速度 & 遅い & 高速 \\
+\hline
+詳細度 & 高い（CFG + AST） & 中程度（CFGのみ） \\
+\hline
+メモリ使用量 & 多い & 少ない \\
+\hline
+用途 & 詳細分析 & 大量ファイル処理 \\
+\hline
+\end{tabular}
+\caption{APIの比較}
+\end{table}
+
+\subsection{parse\_source()の特徴}
+
+\begin{lstlisting}
+functions = parse_source("example.py")
+for func_name, func_obj in functions.items():
+    print(f"関数名: {func_name}")
+    print(f"CFG: {func_obj.cfg}")      # 制御フローグラフ
+    print(f"AST: {func_obj.ast}")      # 抽象構文木
+    print(f"開始行: {func_obj.start_line}")
+    print(f"終了行: {func_obj.end_line}")
+\end{lstlisting}
+
+\textbf{取得できる情報：}
+\begin{itemize}
+    \item 関数の詳細情報（開始行、終了行）
+    \item 高品質なCFG
+    \item 完全なAST
+    \item ノードの詳細な属性
+\end{itemize}
+
+\subsection{fast\_cfgs\_from\_source()の特徴}
+
+\begin{lstlisting}
+cfgs = fast_cfgs_from_source("example.py")
+for cfg_name, cfg in cfgs.items():
+    print(f"CFG名: {cfg_name}")
+    print(f"ノード数: {len(cfg.nodes)}")
+    print(f"エッジ数: {len(cfg.edges)}")
+\end{lstlisting}
+
+\textbf{取得できる情報：}
+\begin{itemize}
+    \item CFGのみ（ASTなし）
+    \item 基本的なノード情報
+    \item 高速な処理
+\end{itemize}
+
+\section{取得できるデータ}
+
+\subsection{関数オブジェクト（parse\_source）}
+
+\begin{lstlisting}
+functions = parse_source("example.py")
+func_obj = functions["example"]
+
+# 基本情報
+print(func_obj.start_line)  # 関数の開始行
+print(func_obj.end_line)    # 関数の終了行
+
+# グラフ情報
+cfg = func_obj.cfg          # 制御フローグラフ
+ast = func_obj.ast          # 抽象構文木
+\end{lstlisting}
+
+\subsection{CFGノードの構造}
+
+\begin{lstlisting}
+for node in cfg.nodes:
+    print(f"ノード型: {type(node)}")
+    print(f"アドレス: {node.addr}")
+    print(f"インデックス: {node.idx}")
+
+    # ノードの属性
+    print(f"エントリーポイント: {node.is_entrypoint}")
+    print(f"エグジットポイント: {node.is_exitpoint}")
+    print(f"マージノード: {node.is_merged_node}")
+
+    # ステートメント（実行文）
+    if hasattr(node, 'statements'):
+        for stmt in node.statements:
+            print(f"ステートメント型: {type(stmt).__name__}")
+            print(f"ステートメント内容: {stmt}")
+\end{lstlisting}
+
+\subsection{ステートメントの種類}
+
+\begin{longtable}{|l|p{4cm}|p{4cm}|}
+\hline
+\textbf{ステートメント型} & \textbf{説明} & \textbf{例} \\
+\hline
+Compare & 比較演算 & x > 0, x < 0 \\
+\hline
+Call & 関数呼び出し & print(i), range(x) \\
+\hline
+Assignment & 代入 & i = value \\
+\hline
+Return & return文 & return x \\
+\hline
+Nop & 特殊操作 & FUNCTION\_START, FUNCTION\_END \\
+\hline
+UnsupportedStmt & サポート外 & x += 1, CONTROL\_STRUCTURE \\
+\hline
+\caption{ステートメントの種類}
+\end{longtable}
+
+\section{基本的な使用例}
+
+\subsection{サンプルコード}
+
+\begin{lstlisting}
+# example.py
+def example(x):
+    if x > 0:
+        for i in range(x):
+            print(i)
+    else:
+        while x < 0:
+            x += 1
+    return x
+\end{lstlisting}
+
+\subsection{基本的な解析スクリプト}
+
+\begin{lstlisting}
+from pyjoern import parse_source
+import networkx as nx
+
+def basic_analysis(file_path):
+    """基本的な解析"""
+
+    # ファイルを解析
+    functions = parse_source(file_path)
+
+    for func_name, func_obj in functions.items():
+        print(f"\n=== 関数: {func_name} ===")
+        print(f"開始行: {func_obj.start_line}")
+        print(f"終了行: {func_obj.end_line}")
+
+        # CFGの基本情報
+        if func_obj.cfg:
+            cfg = func_obj.cfg
+            print(f"CFGノード数: {len(cfg.nodes)}")
+            print(f"CFGエッジ数: {len(cfg.edges)}")
+
+            # 各ノードの詳細
+            print("\nCFGノード詳細:")
+            for i, node in enumerate(cfg.nodes):
+                print(f"  ノード{i+1}: Block:{node.addr}")
+                print(f"    エントリー: {node.is_entrypoint}")
+                print(f"    エグジット: {node.is_exitpoint}")
+
+                # ステートメント
+                if hasattr(node, 'statements') and node.statements:
+                    for j, stmt in enumerate(node.statements):
+                        print(f"      文{j+1}: [{type(stmt).__name__}] {stmt}")
+
+# 実行
+if __name__ == "__main__":
+    basic_analysis("example.py")
+\end{lstlisting}
+
+\subsection{特定の情報を取得する例}
+
+\begin{lstlisting}
+def get_basic_metrics(file_path):
+    """基本メトリクスを取得"""
+
+    functions = parse_source(file_path)
+
+    for func_name, func_obj in functions.items():
+        if func_obj.cfg:
+            cfg = func_obj.cfg
+
+            # 基本メトリクス
+            nodes = len(cfg.nodes)
+            edges = len(cfg.edges)
+
+            # 制御構造をカウント
+            compare_count = 0
+            call_count = 0
+            assignment_count = 0
+
+            for node in cfg.nodes:
+                if hasattr(node, 'statements'):
+                    for stmt in node.statements:
+                        stmt_type = type(stmt).__name__
+
+                        if stmt_type == 'Compare':
+                            compare_count += 1
+                        elif stmt_type == 'Call':
+                            call_count += 1
+                        elif stmt_type == 'Assignment':
+                            assignment_count += 1
+
+            print(f"関数: {func_name}")
+            print(f"  ノード数: {nodes}")
+            print(f"  エッジ数: {edges}")
+            print(f"  比較文: {compare_count}")
+            print(f"  関数呼び出し: {call_count}")
+            print(f"  代入文: {assignment_count}")
+\end{lstlisting}
+
+\subsection{高速CFGでの解析例}
+
+\begin{lstlisting}
+def fast_analysis(file_path):
+    """高速CFG解析"""
+
+    cfgs = fast_cfgs_from_source(file_path)
+
+    for cfg_name, cfg in cfgs.items():
+        print(f"\nCFG: {cfg_name}")
+        print(f"ノード数: {len(cfg.nodes)}")
+        print(f"エッジ数: {len(cfg.edges)}")
+
+        # ノードの簡単な情報
+        for i, node in enumerate(cfg.nodes):
+            print(f"  ノード{i+1}: {repr(node)}")
+\end{lstlisting}
+
+\section{よくある質問}
+
+\subsection{Q1: parse\_source と fast\_cfgs\_from\_source のどちらを使うべき？}
+
+\textbf{A1:}
+\begin{itemize}
+    \item \textbf{詳細分析が必要} → parse\_source()
+    \item \textbf{大量ファイル処理} → fast\_cfgs\_from\_source()
+    \item \textbf{学習・実験目的} → parse\_source()
+\end{itemize}
+
+\subsection{Q2: エラーが発生した場合の対処法は？}
+
+\textbf{A2:}
+\begin{lstlisting}
+try:
+    functions = parse_source(file_path)
+except Exception as e:
+    print(f"解析エラー: {e}")
+    # フォールバック処理
+\end{lstlisting}
+
+\subsection{Q3: 特定のステートメント型だけを取得したい}
+
+\textbf{A3:}
+\begin{lstlisting}
+def get_compare_statements(cfg):
+    """Compare文のみを取得"""
+    compares = []
+
+    for node in cfg.nodes:
+        if hasattr(node, 'statements'):
+            for stmt in node.statements:
+                if type(stmt).__name__ == 'Compare':
+                    compares.append(str(stmt))
+
+    return compares
+\end{lstlisting}
+
+\subsection{Q4: ノードの属性がわからない}
+
+\textbf{A4:}
+\begin{lstlisting}
+# ノードの全属性を確認
+for node in cfg.nodes:
+    print(f"利用可能な属性: {dir(node)}")
+    print(f"__dict__: {node.__dict__}")
+\end{lstlisting}
+
+\subsection{Q5: NetworkXエラーが出る}
+
+\textbf{A5:}
+\begin{lstlisting}[language=bash]
+pip install networkx
+\end{lstlisting}
+
+\section{まとめ}
+
+PyJoernの基本的な使い方：
+
+\begin{enumerate}
+    \item \textbf{インストール}: pip install pyjoern networkx
+    \item \textbf{基本API}: parse\_source() または fast\_cfgs\_from\_source()
+    \item \textbf{データ取得}: 関数情報、CFG、AST、ノード詳細
+    \item \textbf{解析処理}: ステートメント型に基づく分析
+\end{enumerate}
+
+\textbf{次のステップ}: より高度な分析（循環複雑度、変数分析など）は応用編で学習
+
+\section{参考文献}
+
+\begin{itemize}
+    \item PyJoern GitHub: \url{https://github.com/octopus-platform/pyjoern}
+    \item Joern公式ドキュメント: \url{https://joern.io/}
+    \item NetworkX Documentation: \url{https://networkx.org/}
+\end{itemize}
+
+
+\section{はじめに}
+
+静的解析によるPythonコードの特徴量抽出には、主に2つのアプローチがあります：
+\begin{itemize}
+    \item \textbf{PyJoern}: PythonライブラリとしてのJoern
+    \item \textbf{Joern-CLI}: コマンドライン版のJoern
+\end{itemize}
+
+本ガイドでは、両者の違いと特徴量抽出に最適な選択を解説します。
+
+\section{PyJoern vs Joern-CLI 詳細比較}
+
+\subsection{基本比較表}
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{項目} & \textbf{PyJoern} & \textbf{Joern-CLI} \\
+\hline
+\textbf{言語} & Python & Scala/Java \\
+\hline
+\textbf{インターface} & ライブラリ & コマンドライン \\
+\hline
+\textbf{インストール} & pip install & バイナリダウンロード \\
+\hline
+\textbf{学習コスト} & 低い（Python慣れ） & 高い（専用言語） \\
+\hline
+\textbf{機能の完全性} & 部分的 & 完全 \\
+\hline
+\textbf{カスタマイズ性} & 高い & 高い \\
+\hline
+\textbf{大量処理} & 得意 & 得意 \\
+\hline
+\textbf{メモリ効率} & 中程度 & 高い \\
+\hline
+\textbf{処理速度} & 中程度 & 高速 \\
+\hline
+\end{tabular}
+\caption{PyJoern vs Joern-CLI 基本比較}
+\end{table}
+
+\subsection{機能比較詳細}
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{機能} & \textbf{PyJoern} & \textbf{Joern-CLI} & \textbf{備考} \\
+\hline
+\textbf{CFG生成} & ✓ & ✓ & 両方対応 \\
+\hline
+\textbf{AST生成} & ✓ & ✓ & 両方対応 \\
+\hline
+\textbf{DDG生成} & ✓ & ✓ & データ依存グラフ \\
+\hline
+\textbf{PDG生成} & × & ✓ & PyJoernでは未実装 \\
+\hline
+\textbf{CPG統合} & 部分的 & ✓ & Joern-CLIが完全 \\
+\hline
+\textbf{クエリ言語} & × & ✓ & Joern専用DSL \\
+\hline
+\textbf{バッチ処理} & ✓ & ✓ & 両方得意 \\
+\hline
+\textbf{可視化} & 手動 & 組み込み & \\
+\hline
+\end{tabular}
+\caption{機能比較詳細}
+\end{table}
+
+\section{PyJoernの特徴と制限}
+
+\subsection{PyJoernで取得可能なグラフ}
+
+\begin{lstlisting}
+from pyjoern import parse_source
+
+functions = parse_source("example.py")
+func_obj = functions["example"]
+
+# 取得可能なグラフ
+print(f"CFG: {hasattr(func_obj, 'cfg')}")    # ✓ 利用可能
+print(f"AST: {hasattr(func_obj, 'ast')}")    # ✓ 利用可能
+print(f"DDG: {hasattr(func_obj, 'ddg')}")    # ✓ 利用可能
+print(f"PDG: {hasattr(func_obj, 'pdg')}")    # × 未実装
+\end{lstlisting}
+
+\subsection{PyJoernで省略されている機能}
+
+\begin{itemize}
+    \item \textbf{PDG（Program Dependence Graph）}: 制御依存とデータ依存の統合グラフ
+    \item \textbf{完全なCPG}: Code Property Graphの統合ビュー
+    \item \textbf{Joernクエリ言語}: 専用DSLによる高度クエリ
+    \item \textbf{セマンティック解析}: より深いコード理解
+    \item \textbf{組み込み可視化}: グラフの自動可視化機能
+\end{itemize}
+
+\subsection{PyJoernの利点}
+
+\begin{itemize}
+    \item \textbf{Python統合}: 機械学習パイプラインに組み込みやすい
+    \item \textbf{簡単なインストール}: pip一発でインストール完了
+    \item \textbf{カスタマイズ性}: Pythonコードで自由に拡張
+    \item \textbf{NetworkX互換}: 豊富なグラフアルゴリズムを活用
+\end{itemize}
+
+特徴量抽出が主目的であれば、\textbf{PyJoernが最適解}と言えるでしょう。
+
+\end{document}
