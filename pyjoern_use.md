@@ -76,18 +76,48 @@ for func_name, func_obj in functions.items():
     print(f"関数名: {func_name}")
     print(f"CFG: {func_obj.cfg}")      # 制御フローグラフ
     print(f"AST: {func_obj.ast}")      # 抽象構文木
+    print(f"DDG: {func_obj.ddg}")      # データ依存グラフ
     print(f"開始行: {func_obj.start_line}")
     print(f"終了行: {func_obj.end_line}")
 ```
+**実行結果**
+関数名: example
+CFG: DiGraph named 'example' with 7 nodes and 9 edges
+AST: DiGraph named 'example' with 53 nodes and 52 edges
+DDG: DiGraph named 'example' with 19 nodes and 39 edges
+開始行: 1
+終了行: 9
 
 **取得できる情報：**
-- 関数の詳細情報（開始行、終了行）
+- 関数の詳細情報
 - 高品質なCFG
 - 完全なAST
 - ノードの詳細な属性
+<!-- 取得可能な主要情報
+1. 基本情報
+start_line: 関数の開始行番号
+end_line: 関数の終了行番号
+name: 関数名
+parameters: 関数のパラメータ情報
+2. CFG (制御フローグラフ)
+ノード数とエッジ数
+各ノードの詳細属性
+ステートメント情報
+エントリーポイント/エグジットポイント
+3. AST (抽象構文木)
+完全な構文解析結果
+ノード数とエッジ数（通常CFGより多い）
+各ASTノードの詳細情報
+4. DDG (データ依存グラフ)
+変数の依存関係
+データフローの追跡
+変数の定義と使用の関係
+5. 関数メタデータ
+関数シグネチャ
+ファイルパス情報
+スコープ情報 -->
 
 ### fast_cfgs_from_source() の特徴
-
 ```python
 cfgs = fast_cfgs_from_source("example.py")
 for cfg_name, cfg in cfgs.items():
@@ -100,10 +130,31 @@ for cfg_name, cfg in cfgs.items():
 - CFGのみ（ASTなし）
 - 基本的なノード情報
 - 高速な処理
+<!-- 1. CFGオブジェクトの基本情報
+CFGの型（通常はNetworkX DiGraph）
+グラフの名前
+有向/無向の判定
+2. ノードの詳細情報
+ノードのアドレス（node.addr）
+ノードのインデックス（node.idx）
+ノードに含まれるステートメント
+ノードの型と属性
+3. エッジの詳細情報
+エッジの接続関係（source → target）
+エッジに付加されたデータ/属性
+4. NetworkXグラフとしての解析
+グラフの密度
+連結成分数
+最短パス計算
+その他のグラフ理論メトリクス
+5. 制御フロー解析
+エントリーポイント/エグジットポイントの識別
+分岐構造の解析
+ループ構造の検出 -->
 
 ## 取得できるデータ
 
-### 関数オブジェクト（parse_source）
+<!-- ### 関数オブジェクト（parse_source）
 
 ```python
 functions = parse_source("example.py")
@@ -116,7 +167,7 @@ print(func_obj.end_line)    # 関数の終了行
 # グラフ情報
 cfg = func_obj.cfg          # 制御フローグラフ
 ast = func_obj.ast          # 抽象構文木
-```
+``` -->
 
 ### CFGノードの構造
 
@@ -127,8 +178,8 @@ for node in cfg.nodes:
     print(f"インデックス: {node.idx}")
 
     # ノードの属性
-    print(f"エントリーポイント: {node.is_entrypoint}")
-    print(f"エグジットポイント: {node.is_exitpoint}")
+    print(f"エントリーポイント: {node.is_entrypoint}") #入口
+    print(f"エグジットポイント: {node.is_exitpoint}") #出口
     print(f"マージノード: {node.is_merged_node}")
 
     # ステートメント（実行文）
@@ -138,7 +189,7 @@ for node in cfg.nodes:
             print(f"ステートメント内容: {stmt}")
 ```
 
-### ステートメントの種類
+### ステートメント(実行文)の種類
 
 | ステートメント型 | 説明 | 例 |
 |-----------------|------|-----|
@@ -324,27 +375,6 @@ print(f"PDG: {hasattr(func_obj, 'pdg')}")    # × 未実装
 - **簡単なインストール**: pip一発でインストール完了
 - **カスタマイズ性**: Pythonコードで自由に拡張
 - **NetworkX互換**: 豊富なグラフアルゴリズムを活用
-
-## Joern-CLIの特徴
-
-# CPGの生成と操作（Joern内部）
-importCode("example.py")
-cpg.method.name.l  // 全メソッド名を取得
-cpg.call.name.l    // 全関数呼び出しを取得
-```
-
-### Joern-CLIの高度な機能
-
-```scala
-// クエリ言語での複雑な解析
-cpg.method.name("example").controlStructure.l
-cpg.identifier.name("x").reachableBy(cpg.assignment).l
-cpg.call.name("print").argument.l
-
-// 脆弱性パターンの検出
-cpg.call.name("eval").argument.isLiteral(false).l
-```
----
 
 **参考文献**
 - [PyJoern GitHub](https://github.com/octopus-platform/pyjoern)
