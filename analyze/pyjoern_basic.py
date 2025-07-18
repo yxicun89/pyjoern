@@ -1,5 +1,9 @@
 from pyjoern import parse_source, fast_cfgs_from_source
 import networkx as nx
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+from matplotlib.patches import FancyBboxPatch
+import numpy as np
 
 
 # parse_sourceの詳細情報を取得
