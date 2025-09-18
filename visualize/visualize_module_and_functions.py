@@ -11,7 +11,7 @@ import keyword
 import re
 
 # Pyjoernを利用してPythonコードのCFG、AST、DDGを解析・視覚化するツール
-# グラフ化したいコードはmain関数から指定
+# 関数レベルとモジュールレベルの両方に対応
 
 def analyze_python_construct(stmt_str):
     """Pythonの構文を詳細に解析（絵文字なし）"""
@@ -141,24 +141,58 @@ def create_node_labels(graph, graph_type="CFG"):
             if hasattr(node, 'statements') and node.statements:
                 stmt_count = len(node.statements)
 
-                # 特別処理: FUNCTION_START + 条件判定の場合
+                # 特別処理: FUNCTION_START を含むノードは常にすべて表示
                 has_function_start = any('FUNCTION_START' in str(stmt) for stmt in node.statements)
-                has_condition = any('Compare:' in str(stmt) for stmt in node.statements if 'FUNCTION_START' not in str(stmt))
 
-                if has_function_start and has_condition:
-                    # 問題のノードの場合、明確に分離表示
-                    base_label = "[START] FUNCTION ENTRY\n" + "="*16
+                if has_function_start:
+                    # FUNCTION_STARTを含むノードはすべてのステートメントを詳細表示
+                    base_label = "[START] FUNCTION ENTRY\n" + "="*20
+
+                    # デバッグ: コンソールにも詳細な情報を出力
+                    print(f"\n=== FUNCTION_START NODE DEBUG ===")
+                    print(f"Node: {node}")
+                    print(f"Address: {getattr(node, 'addr', 'N/A')}")
+                    print(f"Statement count: {len(node.statements)}")
+
                     for i, stmt in enumerate(node.statements):
-                        if 'FUNCTION_START' in str(stmt):
+                        stmt_str = str(stmt)
+                        stmt_type = type(stmt).__name__ if hasattr(stmt, '__class__') else 'Unknown'
+
+                        # コンソール出力
+                        print(f"[{i}] Type: {stmt_type} | Value: {stmt_str}")
+                        if hasattr(stmt, '__dict__'):
+                            print(f"    Attributes: {list(stmt.__dict__.keys())}")
+
+                        # グラフ表示
+                        if 'FUNCTION_START' in stmt_str:
                             base_label += f"\n[START] Function begins"
-                        elif 'Compare:' in str(stmt):
-                            condition = str(stmt).replace('Compare: ', '')
+                        elif 'Compare:' in stmt_str:
+                            condition = stmt_str.replace('Compare: ', '')
+                            if len(condition) > 30:
+                                condition = condition[:27] + "..."
                             base_label += f"\n[COND] if {condition}"
+                        elif 'Assignment:' in stmt_str:
+                            assign = stmt_str.replace('Assignment: ', '')
+                            if len(assign) > 30:
+                                assign = assign[:27] + "..."
+                            base_label += f"\n[ASSIGN] {assign}"
+                        elif 'Call:' in stmt_str:
+                            call = stmt_str.replace('Call: ', '')
+                            if len(call) > 30:
+                                call = call[:27] + "..."
+                            base_label += f"\n[CALL] {call}"
                         else:
-                            stmt_str = str(stmt)
-                            if len(stmt_str) > 25:
-                                stmt_str = stmt_str[:22] + "..."
-                            base_label += f"\n[{i}]: {stmt_str}"
+                            # その他のステートメント（生の形式も表示）
+                            if len(stmt_str) > 30:
+                                display_str = stmt_str[:27] + "..."
+                            else:
+                                display_str = stmt_str
+                            base_label += f"\n[{i}] {display_str}"
+                            # デバッグ: ステートメントの詳細なタイプを確認
+                            if stmt_type != 'str':
+                                base_label += f"\n    (Type: {stmt_type})"
+
+                    print(f"=== END DEBUG ===\n")
                 else:
                     # 通常のノードの場合
                     base_label += f"\n({stmt_count} stmts)"
@@ -212,35 +246,66 @@ def create_node_labels(graph, graph_type="CFG"):
                             primary_content = "Function End"
                             break
 
-                    # プライマリタイプに基づいてラベルを設定（汎用的）
-                    if primary_stmt_type:
-                        if primary_stmt_type == "LOOP_ITERATION":
-                            base_label += f"\n[LOOP] {primary_content}"
-                        elif primary_stmt_type == "CONDITION":
-                            base_label += f"\n[COND] {primary_content}"
-                        elif primary_stmt_type == "FUNCTION_CALL":
-                            base_label += f"\n[CALL] {primary_content}"
-                        elif primary_stmt_type == "ASSIGNMENT":
-                            base_label += f"\n[ASSIGN] {primary_content}"
-                        elif primary_stmt_type == "FUNCTION_START":
-                            base_label += f"\n[START] {primary_content}"
-                        elif primary_stmt_type == "FUNCTION_END":
-                            base_label += f"\n[END] {primary_content}"
-                        else:
-                            base_label += f"\n[STMT] {primary_content}"
-                    else:
-                        # フォールバック：最初のステートメントのみ表示
-                        if len(node.statements) > 0:
-                            stmt_str = str(node.statements[0])
-                            if len(stmt_str) > 25:
-                                stmt_str = stmt_str[:22] + "..."
-                            base_label += f"\n[STMT] {stmt_str}"
+                    # プライマリタイプに基づくラベル設定はコメントアウト（詳細表示優先）
+                    # if primary_stmt_type:
+                    #     if primary_stmt_type == "LOOP_ITERATION":
+                    #         base_label += f"\n[LOOP] {primary_content}"
+                    #     elif primary_stmt_type == "CONDITION":
+                    #         base_label += f"\n[COND] {primary_content}"
+                    #     elif primary_stmt_type == "FUNCTION_CALL":
+                    #         base_label += f"\n[CALL] {primary_content}"
+                    #     elif primary_stmt_type == "ASSIGNMENT":
+                    #         base_label += f"\n[ASSIGN] {primary_content}"
+                    #     elif primary_stmt_type == "FUNCTION_START":
+                    #         base_label += f"\n[START] {primary_content}"
+                    #     elif primary_stmt_type == "FUNCTION_END":
+                    #         base_label += f"\n[END] {primary_content}"
+                    #     else:
+                    #         base_label += f"\n[STMT] {primary_content}"
+                    # else:
 
-                    if len(node.statements) > 3:
-                        # 複数ステートメントがある場合は総数のみ表示
-                        additional_count = len(node.statements) - 1
-                        if additional_count > 0:
-                            base_label += f"\n(+ {additional_count} more stmts)"
+                    # 常にすべてのステートメントを詳細表示
+                    for i, stmt in enumerate(node.statements):
+                        stmt_str = str(stmt)
+
+                        # ステートメントタイプに応じたプレフィックスを追加
+                        if 'Compare:' in stmt_str:
+                            condition = stmt_str.replace('Compare: ', '')
+                            if len(condition) > 30:
+                                condition = condition[:27] + "..."
+                            base_label += f"\n[COND] {condition}"
+                        elif 'Assignment:' in stmt_str:
+                            assign = stmt_str.replace('Assignment: ', '')
+                            if len(assign) > 30:
+                                assign = assign[:27] + "..."
+                            base_label += f"\n[ASSIGN] {assign}"
+                        elif 'Call:' in stmt_str:
+                            call = stmt_str.replace('Call: ', '')
+                            if len(call) > 30:
+                                call = call[:27] + "..."
+                            base_label += f"\n[CALL] {call}"
+                        elif 'FUNCTION_END' in stmt_str:
+                            base_label += f"\n[END] Function End"
+                        elif 'iteratorNonEmptyOrException' in stmt_str:
+                            base_label += f"\n[LOOP] Iterator check"
+                        else:
+                            # その他のステートメント（生の形式も表示）
+                            if len(stmt_str) > 30:
+                                display_str = stmt_str[:27] + "..."
+                            else:
+                                display_str = stmt_str
+                            base_label += f"\n[{i}] {display_str}"
+                            # デバッグ: 特殊なステートメントの詳細を確認
+                            if any(pattern in stmt_str for pattern in ['-8', 'literal', 'Literal', 'FieldAccess', 'Identifier']):
+                                stmt_type = type(stmt).__name__ if hasattr(stmt, '__class__') else 'Unknown'
+                                base_label += f"\n    (Debug: {stmt_type})"
+
+                    # すべてのステートメントを表示するため、制限をコメントアウト
+                    # if len(node.statements) > 3:
+                    #     # 複数ステートメントがある場合は総数のみ表示
+                    #     additional_count = len(node.statements) - 1
+                    #     if additional_count > 0:
+                    #         base_label += f"\n(+ {additional_count} more stmts)"
 
             # エントリー/エグジットポイントの表示
             if hasattr(node, 'is_entrypoint') and node.is_entrypoint:
@@ -469,21 +534,79 @@ def draw_edges_with_curves(graph, pos, edge_colors, edge_styles):
                               node_size=2000,
                               connectionstyle=f"arc3,rad={curve_rad}")
 
-def visualize_graph(graph, title, graph_type="CFG", save_path=None):
-    """単一グラフの視覚化"""
-    plt.figure(figsize=(12, 8))
+def create_hierarchical_layout(graph, graph_type="CFG"):
+    """コードの実行順序に基づいた階層的レイアウトを作成"""
+    if graph_type != "CFG":
+        # CFG以外は通常のspring layoutを使用
+        return nx.spring_layout(graph, k=1.5, iterations=50)
 
-    # レイアウトの選択
-    if len(graph.nodes()) <= 10:
-        pos = nx.spring_layout(graph, k=2, iterations=50)
-    elif graph_type == "CFG":
-        # CFGは階層的レイアウトが適している
-        try:
-            pos = nx.nx_agraph.graphviz_layout(graph, prog='dot')
-        except:
-            pos = nx.spring_layout(graph, k=3, iterations=50)
-    else:
-        pos = nx.spring_layout(graph, k=1.5, iterations=50)
+    # GraphvizのDOTレイアウトを試行（上から下への階層構造）
+    try:
+        # DOTレイアウト：上から下へのフロー
+        pos = nx.nx_agraph.graphviz_layout(graph, prog='dot')
+        return pos
+    except:
+        # Graphvizが利用できない場合は、手動で階層的レイアウトを作成
+        return create_manual_hierarchical_layout(graph)
+
+def create_manual_hierarchical_layout(graph):
+    """手動で階層的レイアウトを作成（上から下への配置）"""
+    pos = {}
+
+    # ノードをアドレス順にソート（実行順序に対応）
+    nodes_with_addr = []
+    nodes_without_addr = []
+
+    for node in graph.nodes():
+        if hasattr(node, 'addr') and node.addr is not None:
+            nodes_with_addr.append((node.addr, node))
+        else:
+            nodes_without_addr.append(node)
+
+    # アドレス順にソート
+    nodes_with_addr.sort(key=lambda x: x[0])
+    sorted_nodes = [node for addr, node in nodes_with_addr] + nodes_without_addr
+
+    # 縦方向に配置（Y座標を上から下へ）
+    y_positions = {}
+    current_y = len(sorted_nodes)  # 上から開始
+
+    for i, node in enumerate(sorted_nodes):
+        y_positions[node] = current_y - i  # 上から順に配置
+
+    # 横方向の配置を計算（同じレベルの分岐を考慮）
+    x_positions = {}
+    level_counts = {}
+
+    for node in sorted_nodes:
+        y = y_positions[node]
+        if y not in level_counts:
+            level_counts[y] = 0
+        x_positions[node] = level_counts[y]
+        level_counts[y] += 1
+
+    # 座標を正規化
+    for node in sorted_nodes:
+        y = y_positions[node]
+        x = x_positions[node]
+
+        # 同一レベルのノードを中央揃え
+        level_width = level_counts[y]
+        if level_width > 1:
+            x_offset = (x - (level_width - 1) / 2) * 2  # 横方向の間隔を調整
+        else:
+            x_offset = 0
+
+        pos[node] = (x_offset, y)
+
+    return pos
+
+def visualize_graph(graph, title, graph_type="CFG", save_path=None):
+    """単一グラフの視覚化（コード実行順序に基づいた配置）"""
+    plt.figure(figsize=(14, 10))  # サイズを少し大きく
+
+    # 階層的レイアウトを使用
+    pos = create_hierarchical_layout(graph, graph_type)
 
     # ノードとエッジの描画
     node_colors = get_node_colors(graph, graph_type)
@@ -574,9 +697,18 @@ def compare_graphs_side_by_side(cfg, ast, ddg, func_name, save_dir=None):
         if graph and len(graph.nodes()) > 0:
             plt.sca(axes[i])
 
-            # レイアウト計算
-            if len(graph.nodes()) <= 8:
-                pos = nx.spring_layout(graph, k=1.5, iterations=50)
+            # 階層的レイアウトを使用（コンパクト版）
+            if graph_type == "CFG":
+                try:
+                    # DOTレイアウトを試行
+                    pos = nx.nx_agraph.graphviz_layout(graph, prog='dot')
+                except:
+                    # フォールバック：手動階層レイアウト（縮小版）
+                    pos = create_manual_hierarchical_layout(graph)
+                    # 比較表示用に座標をスケール調整
+                    for node in pos:
+                        x, y = pos[node]
+                        pos[node] = (x * 0.8, y * 0.8)
             else:
                 pos = nx.spring_layout(graph, k=1, iterations=30)
 
@@ -625,21 +757,151 @@ def compare_graphs_side_by_side(cfg, ast, ddg, func_name, save_dir=None):
                         transform=axes[i].transAxes)
             axes[i].axis('off')
 
-    plt.suptitle(f"Graph Comparison for Function: {func_name} (No Emoji)",
+    plt.suptitle(f"Graph Comparison for: {func_name}",
                 fontsize=16, fontweight='bold')
     plt.tight_layout()
 
     if save_dir:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        save_path = os.path.join(save_dir, f"graph_comparison_{func_name}_{timestamp}.png")
+        save_path = os.path.join(save_dir, f"graph_comparison_{func_name}.png")
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
         print(f"比較グラフを保存しました: {save_path}")
 
     plt.show()
+
+def debug_cfg_structure(cfg, func_name):
+    """CFG構造を詳細にデバッグ（try-except構造の問題検出）"""
+    print(f"\n{'='*60}")
+    print(f"CFG構造デバッグ: {func_name}")
+    print(f"{'='*60}")
+
+    print(f"基本情報: {cfg.number_of_nodes()} nodes, {cfg.number_of_edges()} edges")
+
+    # ノードをアドレスでソート
+    nodes_with_addr = []
+    for node in cfg.nodes():
+        addr = getattr(node, 'addr', 0)  # アドレスがない場合は0
+        nodes_with_addr.append((addr, node))
+
+    # アドレス順にソート
+    nodes_with_addr.sort(key=lambda x: x[0])
+
+    # 全ノードの詳細分析
+    for addr, node in nodes_with_addr:
+        successors = list(cfg.successors(node))
+        predecessors = list(cfg.predecessors(node))
+
+        print(f"\n--- Node {addr} (ID: {id(node)}) ---")
+
+        # ノードオブジェクト自体の詳細情報
+        print(f"Node object: {node}")
+        print(f"Node type: {type(node)}")
+        print(f"Node attributes: {dir(node) if hasattr(node, '__dict__') else 'No attributes'}")
+
+        # ステートメント詳細
+        if hasattr(node, 'statements') and node.statements:
+            print(f"Statements ({len(node.statements)}個):")
+            for i, stmt in enumerate(node.statements):
+                stmt_str = str(stmt)
+                stmt_type = type(stmt).__name__
+                print(f"  [{i}] {stmt_type}: {stmt_str}")
+
+                # try-except関連キーワードの検出
+                keywords = ['try', 'except', 'ValueError', 'TypeError', 'continue', 'Compare:', 'value % 2']
+                for keyword in keywords:
+                    if keyword in stmt_str:
+                        print(f"      *** {keyword} detected ***")
+        else:
+            print("Statements: ノードに直接アクセスできない、またはstatements属性なし")
+
+        print(f"In: {[getattr(p, 'addr', 'N/A') for p in predecessors]} | Out: {[getattr(s, 'addr', 'N/A') for s in successors]}")
+
+        # 問題検出 - 最大アドレスのノードを取得
+        max_addr = max(getattr(n, 'addr', 0) for n in cfg.nodes())
+        if len(successors) == 0 and addr != max_addr:
+            print(f"  🚨 WARNING: Node {addr} has no successors!")
+
+            # try-except内のif文の検出
+            if hasattr(node, 'statements') and node.statements:
+                for stmt in node.statements:
+                    if 'Compare:' in str(stmt) and 'value % 2' in str(stmt):
+                        print(f"  🔍 ANALYSIS: This appears to be the if statement inside try block")
+                        print(f"      Expected: Should have True/False branches")
+                        print(f"      Reality: No outgoing edges found")
+                        print(f"      Possible cause: try-except CFG generation issue")    # エッジ分析
+    print(f"\n--- エッジ分析 ---")
+
+    # エッジをソート可能にする
+    edges_with_addr = []
+    for edge in cfg.edges():
+        source, target = edge
+        source_addr = getattr(source, 'addr', 0)
+        target_addr = getattr(target, 'addr', 0)
+        edges_with_addr.append((source_addr, target_addr, source, target))
+
+    # ソート
+    edges_with_addr.sort(key=lambda x: (x[0], x[1]))
+
+    for source_addr, target_addr, source, target in edges_with_addr:
+        source_data = cfg.nodes[source]
+
+        # ソースノードの最後のステートメント
+        if hasattr(source_data, 'statements') and source_data.statements:
+            last_stmt = str(source_data.statements[-1])
+            edge_type = "Normal"
+
+            if 'Compare:' in last_stmt:
+                edge_type = "Conditional"
+            elif 'try' in last_stmt.lower():
+                edge_type = "Try-block"
+            elif 'except' in last_stmt.lower():
+                edge_type = "Exception-handler"
+
+            print(f"{source_addr} -> {target_addr} ({edge_type})")
+            if 'Compare:' in last_stmt and 'value % 2' in last_stmt:
+                print(f"  ⚠️  Conditional node with potential branching issue")
+
+    # 構造的問題の検出
+    print(f"\n--- 構造的問題検出 ---")
+
+    # デッドエンドノード（出口以外で後続なし）
+    max_addr = max(getattr(n, 'addr', 0) for n in cfg.nodes())
+    exit_node = None
+    for node in cfg.nodes():
+        if getattr(node, 'addr', 0) == max_addr:
+            exit_node = node
+            break
+
+    deadend_nodes = [node for node in cfg.nodes()
+                    if node != exit_node and len(list(cfg.successors(node))) == 0]
+
+    if deadend_nodes:
+        print(f"🚨 デッドエンドノード数: {len(deadend_nodes)}")
+        for node in deadend_nodes:
+            node_addr = getattr(node, 'addr', 'N/A')
+            node_data = cfg.nodes[node]
+            print(f"   Node {node_addr}:")
+            if hasattr(node_data, 'statements') and node_data.statements:
+                for stmt in node_data.statements:
+                    print(f"     - {stmt}")
+    else:
+        print("✅ デッドエンドノードなし")
+
+    # 強連結成分
+    try:
+        sccs = list(nx.strongly_connected_components(cfg))
+        non_trivial_sccs = [scc for scc in sccs if len(scc) > 1]
+
+        if non_trivial_sccs:
+            print(f"🔄 ループ検出: {non_trivial_sccs}")
+        else:
+            print("✅ ループなし（DAG構造）")
+    except:
+        print("⚠️ 強連結成分分析でエラー")
+
 def analyze_and_visualize_file(source_file, output_dir="graph_images"):
-    """ソースファイルを解析してすべてのグラフを視覚化（絵文字なし）"""
+    """ソースファイルを解析してすべてのグラフを視覚化（関数・モジュール両対応）"""
     print(f"=" * 80)
-    print(f"ファイル '{source_file}' のグラフ解析・視覚化（絵文字なし版）")
+    print(f"ファイル '{source_file}' のグラフ解析・視覚化（関数・モジュール両対応版）")
     print(f"=" * 80)
 
     # 実行ごとに一意のディレクトリを作成
@@ -661,31 +923,40 @@ def analyze_and_visualize_file(source_file, output_dir="graph_images"):
     functions = parse_source(source_file)
 
     for func_name, func_obj in functions.items():
-        print(f"\n[ANALYZE] 関数 '{func_name}' を解析中...")
+        print(f"\n[ANALYZE] '{func_name}' を解析中...")
 
         cfg = func_obj.cfg if hasattr(func_obj, 'cfg') else None
         ast = func_obj.ast if hasattr(func_obj, 'ast') else None
         ddg = func_obj.ddg if hasattr(func_obj, 'ddg') else None
 
+        # CFG構造のデバッグ分析を追加
+        if cfg and len(cfg.nodes()) > 0:
+            debug_cfg_structure(cfg, func_name)
+
         # 個別グラフの視覚化（タイムスタンプは不要、ディレクトリで区別）
         if cfg and len(cfg.nodes()) > 0:
             print("  [CFG] CFG グラフを視覚化...")
-            save_path = os.path.join(unique_output_dir, f"cfg_{func_name}.png")
-            visualize_graph(cfg, f"CFG for function '{func_name}' (No Emoji)", "CFG", save_path)
+            # ファイル名に適さない文字を置換
+            safe_name = func_name.replace('<', '').replace('>', '').replace('&lt;', '').replace('&gt;', '')
+            save_path = os.path.join(unique_output_dir, f"cfg_{safe_name}.png")
+            visualize_graph(cfg, f"CFG for '{func_name}'", "CFG", save_path)
 
         if ast and len(ast.nodes()) > 0:
             print("  [AST] AST グラフを視覚化...")
-            save_path = os.path.join(unique_output_dir, f"ast_{func_name}.png")
-            visualize_graph(ast, f"AST for function '{func_name}' (No Emoji)", "AST", save_path)
+            safe_name = func_name.replace('<', '').replace('>', '').replace('&lt;', '').replace('&gt;', '')
+            save_path = os.path.join(unique_output_dir, f"ast_{safe_name}.png")
+            visualize_graph(ast, f"AST for '{func_name}'", "AST", save_path)
 
         if ddg and len(ddg.nodes()) > 0:
             print("  [DDG] DDG グラフを視覚化...")
-            save_path = os.path.join(unique_output_dir, f"ddg_{func_name}.png")
-            visualize_graph(ddg, f"DDG for function '{func_name}' (No Emoji)", "DDG", save_path)
+            safe_name = func_name.replace('<', '').replace('>', '').replace('&lt;', '').replace('&gt;', '')
+            save_path = os.path.join(unique_output_dir, f"ddg_{safe_name}.png")
+            visualize_graph(ddg, f"DDG for '{func_name}'", "DDG", save_path)
 
         # 比較グラフの表示
         print("  [COMPARE] 比較グラフを生成...")
-        compare_graphs_side_by_side(cfg, ast, ddg, func_name, unique_output_dir)
+        safe_name = func_name.replace('<', '').replace('>', '').replace('&lt;', '').replace('&gt;', '')
+        compare_graphs_side_by_side(cfg, ast, ddg, safe_name, unique_output_dir)
 
     # fast_cfgs_from_sourceで高速CFG解析
     print("\n--- Fast CFG Analysis ---")
@@ -694,30 +965,33 @@ def analyze_and_visualize_file(source_file, output_dir="graph_images"):
     # デバッグ用：利用可能なCFGを表示
     print(f"利用可能なCFG: {list(cfgs.keys())}")
 
-    # 関数名のみをフィルタリング（演算子系とモジュールを除外）
+    # 関数とモジュールのCFGをフィルタリング（演算子系のみ除外）
     function_cfgs = {}
     for name, cfg in cfgs.items():
         # 除外する条件：
         # - <operator> で始まるもの
         # - &lt;operator&gt; で始まるもの（HTMLエンコード）
-        # - <module>
-        # - &lt;module&gt; （HTMLエンコード）
+        # モジュールレベルのコードも含める
         if (not name.startswith('<operator>') and
-            not name.startswith('&lt;operator&gt;') and
-            not name == '<module>' and
-            not name == '&lt;module&gt;'):
+            not name.startswith('&lt;operator&gt;')):
             function_cfgs[name] = cfg
 
-    print(f"フィルタリング後の関数CFG: {list(function_cfgs.keys())}")
+    print(f"フィルタリング後のCFG: {list(function_cfgs.keys())}")
 
     if not function_cfgs:
-        print("  [INFO] 関数レベルのCFGが見つかりませんでした。")
+        print("  [INFO] 解析可能なCFGが見つかりませんでした。")
 
     for cfg_name, cfg in function_cfgs.items():
         if len(cfg.nodes()) > 0:
-            print(f"\n[FAST-CFG] 関数 '{cfg_name}' のCFGを視覚化...")
-            save_path = os.path.join(unique_output_dir, f"fast_cfg_{cfg_name}.png")
-            visualize_graph(cfg, f"Fast CFG: {cfg_name} (No Emoji)", "CFG", save_path)
+            print(f"\n[FAST-CFG] '{cfg_name}' のCFGを視覚化...")
+
+            # Fast CFGでもデバッグ分析を追加
+            debug_cfg_structure(cfg, cfg_name)
+
+            # ファイル名に適さない文字を置換
+            safe_name = cfg_name.replace('<', '').replace('>', '').replace('&lt;', '').replace('&gt;', '')
+            save_path = os.path.join(unique_output_dir, f"fast_cfg_{safe_name}.png")
+            visualize_graph(cfg, f"Fast CFG: {cfg_name}", "CFG", save_path)
 
     # 実行結果のサマリー表示
     print(f"\n" + "="*80)
@@ -726,6 +1000,18 @@ def analyze_and_visualize_file(source_file, output_dir="graph_images"):
     print(f"="*80)
 
 if __name__ == "__main__":
-    # whiletest.pyを解析
-    # analyze_and_visualize_file("whiletest.py")
-    analyze_and_visualize_file("textbook.py")
+    # # モジュールレベルのコードテスト
+    # print("=== モジュールレベルコードのテスト ===")
+    # analyze_and_visualize_file("module_test.py")
+
+    # print("\n" + "="*50 + "\n")
+
+    # # 関数化されたコードもテスト
+    # print("=== 関数化されたコードのテスト ===")
+    # analyze_and_visualize_file("textbook.py")
+
+    # analyze_and_visualize_file("middle_code.c")
+    # analyze_and_visualize_file("try_except.py")
+    # analyze_and_visualize_file("try_except_fixed.py")
+    # analyze_and_visualize_file("try_except.java")
+    analyze_and_visualize_file("whiletest.py")
