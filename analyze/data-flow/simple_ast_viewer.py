@@ -1255,15 +1255,6 @@ def analyze_variable_writes(func_obj, var_analysis, compound_assignments=None):
                             'is_loop_var': var in loop_variables
                         })
 
-    # 🔄 複合代入演算子による書き込み数を加算（引数で渡された結果を使用）
-    if compound_assignments:
-        for var in user_defined_vars:
-            compound_count = len(compound_assignments.get(var, []))
-            if compound_count > 0:
-                write_counts[var] += compound_count
-                if VERBOSE_OUTPUT:
-                    print(f"  🔄 {var}の複合代入演算子による書き込み: +{compound_count}回")
-
     # 結果表示
     if VERBOSE_OUTPUT:
         print(f"\n  🎯 独自定義変数の書き込み数:")
@@ -1277,11 +1268,11 @@ def analyze_variable_writes(func_obj, var_analysis, compound_assignments=None):
         print(f"  📊 総書き込み数: {total_writes}回")
 
     # 詳細デバッグ情報（コメントアウト）
-    # print(f"\n  🔍 書き込み詳細 (デバッグ情報):")
-    # for write in all_writes:
-    #     loop_mark = " [ループ変数]" if write['is_loop_var'] else ""
-    #     print(f"    {write['variable']}: {write['count']}回{loop_mark} (ノード {write['node_addr']})")
-    #     print(f"      Statement: {write['statement'][:80]}...")
+    print(f"\n  🔍 書き込み詳細 (デバッグ情報):")
+    for write in all_writes:
+        loop_mark = " [ループ変数]" if write['is_loop_var'] else ""
+        print(f"    {write['variable']}: {write['count']}回{loop_mark} (ノード {write['node_addr']})")
+        print(f"      Statement: {write['statement'][:80]}...")
 
     return write_counts
 
@@ -1595,11 +1586,11 @@ def main():
                     # 複合代入演算子解析を取得
                     compound_assignments = analyze_compound_assignments(func_obj, var_analysis)
 
-                    # 読み込み数解析を取得
-                    read_counts = analyze_variable_reads(func_obj, var_analysis)
+                    # 読み込み数解析を取得（複合代入演算子結果を渡す）
+                    read_counts = analyze_variable_reads(func_obj, var_analysis, compound_assignments)
 
-                    # 書き込み数解析を取得
-                    write_counts = analyze_variable_writes(func_obj, var_analysis)
+                    # 書き込み数解析を取得（複合代入演算子結果を渡す）
+                    write_counts = analyze_variable_writes(func_obj, var_analysis, compound_assignments)
 
                     # 結果を結合
                     var_analysis['read_counts'] = read_counts
