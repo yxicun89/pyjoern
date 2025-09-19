@@ -11,7 +11,7 @@ from pyjoern import parse_source, fast_cfgs_from_source
 import networkx as nx
 
 # デバッグ表示制御フラグ
-VERBOSE_OUTPUT = False  # True: 詳細表示, False: サマリーのみ
+VERBOSE_OUTPUT = True  # True: 詳細表示, False: サマリーのみ
 
 
 def display_ast_structure(file_path):
@@ -920,7 +920,18 @@ def analyze_variable_reads(func_obj, var_analysis):
                             'count': var_refs,
                             'statement': stmt_str[:100],  # 長い文は切り詰め
                             'node_addr': node.addr
-                        })    # 結果表示
+                        })
+
+    # 🔄 複合代入演算子による読み込み数を加算
+    compound_assignments = analyze_compound_assignments(func_obj, var_analysis)
+    for var in user_defined_vars:
+        compound_count = len(compound_assignments.get(var, []))
+        if compound_count > 0:
+            read_counts[var] += compound_count
+            if VERBOSE_OUTPUT:
+                print(f"  🔄 {var}の複合代入演算子による読み込み: +{compound_count}回")
+
+    # 結果表示
     if VERBOSE_OUTPUT:
         print(f"  🎯 独自定義変数の読み込み数:")
         total_reads = 0
@@ -932,10 +943,10 @@ def analyze_variable_reads(func_obj, var_analysis):
         print(f"  📊 総読み込み数: {total_reads}回")
 
     # 詳細デバッグ情報（コメントアウト）
-    # print(f"\n  🔍 読み込み詳細 (デバッグ情報):")
-    # for ref in all_references:
-    #     print(f"    {ref['variable']}: {ref['count']}回 (ノード {ref['node_addr']})")
-    #     print(f"      Statement: {ref['statement'][:80]}...")
+    print(f"\n  🔍 読み込み詳細 (デバッグ情報):")
+    for ref in all_references:
+        print(f"    {ref['variable']}: {ref['count']}回 (ノード {ref['node_addr']})")
+        print(f"      Statement: {ref['statement'][:80]}...")
 
     return read_counts
 
@@ -1244,6 +1255,15 @@ def analyze_variable_writes(func_obj, var_analysis):
                             'is_loop_var': var in loop_variables
                         })
 
+    # 🔄 複合代入演算子による書き込み数を加算
+    compound_assignments = analyze_compound_assignments(func_obj, var_analysis)
+    for var in user_defined_vars:
+        compound_count = len(compound_assignments.get(var, []))
+        if compound_count > 0:
+            write_counts[var] += compound_count
+            if VERBOSE_OUTPUT:
+                print(f"  🔄 {var}の複合代入演算子による書き込み: +{compound_count}回")
+
     # 結果表示
     if VERBOSE_OUTPUT:
         print(f"\n  🎯 独自定義変数の書き込み数:")
@@ -1355,26 +1375,19 @@ def count_variable_references(stmt_str, var_name, node_addr):
 
     # 除外すべきステートメントパターン（pyjoern内部表現のみ）
     exclude_patterns = [
-        r'<UnsupportedStmt:',                  # 全てのUnsupportedStmt（内部表現）
         r'PARAM,',                             # パラメータ定義
         r'LOCAL,',                             # ローカル変数定義
         r'CONTROL_STRUCTURE',                  # 制御構造
         r"^\s*tmp\d+\s*=",                     # 一時変数への代入
         r"^\s*\w+\)\s*$",                      # 単一の変数名＋閉じ括弧のみ
         r"__next__\(\)",                       # イテレータ内部メソッド
+        r'<UnsupportedStmt:',                  # UnsupportedStmt（複合代入演算子を含む）
     ]
 
     # 除外パターンに一致する場合はカウントしない
     for pattern in exclude_patterns:
         if re.search(pattern, stmt_str, re.IGNORECASE):
             return 0
-
-    # 複合代入演算子のチェック（読み込みとしてカウント）
-    compound_operators = ['+=', '-=', '*=', '/=', '//=', '%=', '**=', '&=', '|=', '^=', '<<=', '>>=']
-    for op in compound_operators:
-        pattern = rf'\b{re.escape(var_name)}\s*{re.escape(op)}\s*'
-        if re.search(pattern, stmt_str):
-            return 1  # 複合代入演算子は読み込みとしてカウント
 
     # for文のループ変数の特殊処理
     # for var in range(...): の場合、varは条件判定で暗黙的に読み込まれる
