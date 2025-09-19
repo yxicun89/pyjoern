@@ -160,14 +160,14 @@ def analyze_ast_node_types(file_path):
             # 新機能: statements解析による変数抽出
             var_analysis = analyze_variables_from_statements(func_obj)
 
-            # 新機能: 複合代入演算子解析
+            # 新機能: 複合代入演算子解析（1回だけ）
             compound_assignments = analyze_compound_assignments(func_obj, var_analysis)
 
-            # 新機能: 変数の読み込み数解析
-            read_counts = analyze_variable_reads(func_obj, var_analysis)
+            # 新機能: 変数の読み込み数解析（複合代入演算子結果を渡す）
+            read_counts = analyze_variable_reads(func_obj, var_analysis, compound_assignments)
 
-            # 新機能: 変数の書き込み数解析
-            write_counts = analyze_variable_writes(func_obj, var_analysis)
+            # 新機能: 変数の書き込み数解析（複合代入演算子結果を渡す）
+            write_counts = analyze_variable_writes(func_obj, var_analysis, compound_assignments)
 
     except Exception as e:
         print(f"❌ ノードタイプ分析エラー: {e}")
@@ -880,7 +880,7 @@ def analyze_compound_assignments(func_obj, var_analysis):
     return compound_assignments
 
 
-def analyze_variable_reads(func_obj, var_analysis):
+def analyze_variable_reads(func_obj, var_analysis, compound_assignments=None):
     """
     独自定義変数の読み込み数を解析
     代入演算子の左辺以外で登場する変数の数をカウント
@@ -922,14 +922,14 @@ def analyze_variable_reads(func_obj, var_analysis):
                             'node_addr': node.addr
                         })
 
-    # 🔄 複合代入演算子による読み込み数を加算
-    compound_assignments = analyze_compound_assignments(func_obj, var_analysis)
-    for var in user_defined_vars:
-        compound_count = len(compound_assignments.get(var, []))
-        if compound_count > 0:
-            read_counts[var] += compound_count
-            if VERBOSE_OUTPUT:
-                print(f"  🔄 {var}の複合代入演算子による読み込み: +{compound_count}回")
+    # 🔄 複合代入演算子による読み込み数を加算（引数で渡された結果を使用）
+    if compound_assignments:
+        for var in user_defined_vars:
+            compound_count = len(compound_assignments.get(var, []))
+            if compound_count > 0:
+                read_counts[var] += compound_count
+                if VERBOSE_OUTPUT:
+                    print(f"  🔄 {var}の複合代入演算子による読み込み: +{compound_count}回")
 
     # 結果表示
     if VERBOSE_OUTPUT:
@@ -951,7 +951,7 @@ def analyze_variable_reads(func_obj, var_analysis):
     return read_counts
 
 
-def analyze_variable_writes(func_obj, var_analysis):
+def analyze_variable_writes(func_obj, var_analysis, compound_assignments=None):
     """
     独自定義変数の書き込み数を解析
     代入演算子の左辺、複合代入演算子、for文のループ変数をカウント
@@ -1255,14 +1255,14 @@ def analyze_variable_writes(func_obj, var_analysis):
                             'is_loop_var': var in loop_variables
                         })
 
-    # 🔄 複合代入演算子による書き込み数を加算
-    compound_assignments = analyze_compound_assignments(func_obj, var_analysis)
-    for var in user_defined_vars:
-        compound_count = len(compound_assignments.get(var, []))
-        if compound_count > 0:
-            write_counts[var] += compound_count
-            if VERBOSE_OUTPUT:
-                print(f"  🔄 {var}の複合代入演算子による書き込み: +{compound_count}回")
+    # 🔄 複合代入演算子による書き込み数を加算（引数で渡された結果を使用）
+    if compound_assignments:
+        for var in user_defined_vars:
+            compound_count = len(compound_assignments.get(var, []))
+            if compound_count > 0:
+                write_counts[var] += compound_count
+                if VERBOSE_OUTPUT:
+                    print(f"  🔄 {var}の複合代入演算子による書き込み: +{compound_count}回")
 
     # 結果表示
     if VERBOSE_OUTPUT:
