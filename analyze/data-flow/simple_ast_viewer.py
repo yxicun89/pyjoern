@@ -1,12 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-シンプルなAST構造表示プログラム
-
-debug_analysis.pyのASTノード調査コードを元に、
-AST構造を分かりやすく表示する
-"""
-
 from pyjoern import parse_source, fast_cfgs_from_source
 import networkx as nx
 
@@ -15,9 +6,7 @@ VERBOSE_OUTPUT = True  # True: 詳細表示, False: サマリーのみ
 
 
 def display_ast_structure(file_path):
-    """
-    指定されたファイルのAST構造を表示
-    """
+
     if VERBOSE_OUTPUT:
         print(f"{'='*60}")
         print(f"AST構造表示: {file_path}")
@@ -29,11 +18,11 @@ def display_ast_structure(file_path):
 
         if not functions:
             if VERBOSE_OUTPUT:
-                print("❌ 関数が見つかりませんでした")
+                print("関数が見つかりませんでした")
             return
 
         if VERBOSE_OUTPUT:
-            print(f"✅ 検出された関数: {list(functions.keys())}")
+            print(f"検出された関数: {list(functions.keys())}")
 
         # 各関数のAST構造を表示
         for func_name, func_obj in functions.items():
@@ -50,26 +39,23 @@ def display_ast_structure(file_path):
 
     except Exception as e:
         if VERBOSE_OUTPUT:
-            print(f"❌ エラー: {e}")
+            print(f"エラー: {e}")
             import traceback
             traceback.print_exc()
 
 
 def display_ast_details(func_obj):
-    """
-    関数のAST詳細を表示
-    """
     if not (hasattr(func_obj, 'ast') and func_obj.ast and isinstance(func_obj.ast, nx.DiGraph)):
-        print("⚠️  AST情報が利用できません")
+        print("AST情報が利用できません")
         return
 
     ast_graph = func_obj.ast
-    print(f"📊 AST統計:")
+    print(f" AST統計:")
     print(f"  - ノード数: {len(ast_graph.nodes)}")
     print(f"  - エッジ数: {len(ast_graph.edges)}")
 
     # AST ノードの詳細表示
-    print(f"\n🌳 ASTノード一覧:")
+    print(f"\n ASTノード一覧:")
 
     for i, node in enumerate(ast_graph.nodes):
         print(f"\n--- ASTノード {i+1} ---")
@@ -81,7 +67,7 @@ def display_ast_details(func_obj):
             node_dict = node.__dict__
             print(f"  属性(__dict__):")
             for key, value in node_dict.items():
-                # 値を適切に表示（長すぎる場合は切り詰め）
+                # 値を適切に表示
                 value_str = str(value)
                 if len(value_str) > 100:
                     value_str = value_str[:100] + "..."
@@ -110,9 +96,6 @@ def display_ast_details(func_obj):
 
 
 def analyze_ast_node_types(file_path):
-    """
-    AST内のノードタイプを分析
-    """
     if VERBOSE_OUTPUT:
         print(f"\n{'='*40}")
         print("AST ノードタイプ分析")
@@ -157,27 +140,23 @@ def analyze_ast_node_types(file_path):
                     else:
                         print(f"    repr: {repr(example_node)[:50]}")
 
-            # 新機能: statements解析による変数抽出
+            # statements解析による変数抽出
             var_analysis = analyze_variables_from_statements(func_obj)
 
-            # 新機能: 複合代入演算子解析（1回だけ）
+            # 複合代入演算子解析
             compound_assignments = analyze_compound_assignments(func_obj, var_analysis)
 
-            # 新機能: 変数の読み込み数解析（複合代入演算子結果を渡す）
+            # 変数の読み込み数解析（複合代入演算子結果を渡す）
             read_counts = analyze_variable_reads(func_obj, var_analysis, compound_assignments)
 
-            # 新機能: 変数の書き込み数解析（複合代入演算子結果を渡す）
+            # 変数の書き込み数解析（複合代入演算子結果を渡す）
             write_counts = analyze_variable_writes(func_obj, var_analysis, compound_assignments)
 
     except Exception as e:
-        print(f"❌ ノードタイプ分析エラー: {e}")
+        print(f"ノードタイプ分析エラー: {e}")
 
 
 def extract_function_arguments(call_statement, function_name):
-    """
-    関数呼び出しステートメントから引数を抽出
-    例: "example(5)" → ["5"]
-    """
     import re
 
     # 関数名(引数...)のパターンを抽出
@@ -198,9 +177,6 @@ def extract_function_arguments(call_statement, function_name):
 
 
 def get_function_parameters(func_obj):
-    """
-    pyjoernの関数オブジェクトからパラメータ名のリストを取得
-    """
     parameters = []
 
     if hasattr(func_obj, 'ast') and func_obj.ast:
@@ -224,12 +200,8 @@ def get_function_parameters(func_obj):
 
 
 def analyze_top_level_variables(module_cfg, function_calls):
-    """
-    トップレベルでの変数読み込み・書き込みを解析
-    関数呼び出しの引数から変数使用を検出
-    """
     if VERBOSE_OUTPUT:
-        print(f"\n🎯 トップレベル変数使用分析:")
+        print(f"\nトップレベル変数使用分析:")
 
     # 変数の読み込み・書き込みをカウント
     variable_reads = {}
@@ -242,12 +214,12 @@ def analyze_top_level_variables(module_cfg, function_calls):
         function_name = call_info['function_name']
 
         if VERBOSE_OUTPUT:
-            print(f"\n📞 関数呼び出し分析: {stmt_str}")
+            print(f"\n関数呼び出し分析: {stmt_str}")
 
         # 引数を抽出
         args = extract_function_arguments(stmt_str, function_name)
         if VERBOSE_OUTPUT:
-            print(f"  📥 引数: {args}")
+            print(f"  引数: {args}")
 
         # 各引数を分析
         for i, arg in enumerate(args):
@@ -257,14 +229,14 @@ def analyze_top_level_variables(module_cfg, function_calls):
             if arg.isdigit() or (arg.startswith('"') and arg.endswith('"')) or (arg.startswith("'") and arg.endswith("'")):
                 literal_values.append(arg)
                 if VERBOSE_OUTPUT:
-                    print(f"    📌 引数[{i}]: リテラル値 '{arg}'")
+                    print(f"    引数[{i}]: リテラル値 '{arg}'")
 
             # 変数名の場合
             elif arg.isidentifier():
                 # 変数の読み込みとしてカウント
                 variable_reads[arg] = variable_reads.get(arg, 0) + 1
                 if VERBOSE_OUTPUT:
-                    print(f"    📖 引数[{i}]: 変数読み込み '{arg}' ({variable_reads[arg]}回目)")
+                    print(f"    引数[{i}]: 変数読み込み '{arg}' ({variable_reads[arg]}回目)")
 
             # 複雑な式の場合
             else:
@@ -273,11 +245,11 @@ def analyze_top_level_variables(module_cfg, function_calls):
                 for var in vars_in_expr:
                     variable_reads[var] = variable_reads.get(var, 0) + 1
                     if VERBOSE_OUTPUT:
-                        print(f"    🔍 引数[{i}]: 式 '{arg}' 内の変数読み込み '{var}' ({variable_reads[var]}回目)")
+                        print(f" 引数[{i}]: 式 '{arg}' 内の変数読み込み '{var}' ({variable_reads[var]}回目)")
 
-    # モジュール内の代入文を分析
+    # モジュール内の代入文を分析    
     if VERBOSE_OUTPUT:
-        print(f"\n✏️ トップレベル代入文分析:")
+        print(f"\nトップレベル代入文分析:")
     for node in module_cfg.nodes():
         if hasattr(node, 'statements') and node.statements:
             for stmt in node.statements:
@@ -298,31 +270,31 @@ def analyze_top_level_variables(module_cfg, function_calls):
                         if var_name not in ['print', 'range', '__name__'] and not value.startswith('def'):
                             variable_writes[var_name] = variable_writes.get(var_name, 0) + 1
                             if VERBOSE_OUTPUT:
-                                print(f"  ✏️ 変数書き込み: '{var_name}' = {value} ({variable_writes[var_name]}回目)")
+                                print(f"  変数書き込み: '{var_name}' = {value} ({variable_writes[var_name]}回目)")
 
     # 結果の表示
     if VERBOSE_OUTPUT:
-        print(f"\n📊 トップレベル変数使用サマリー:")
+        print(f"\n トップレベル変数使用サマリー:")
 
-        print(f"📖 変数読み込み:")
+        print(f"変数読み込み:")
         if variable_reads:
             total_reads = sum(variable_reads.values())
             for var, count in sorted(variable_reads.items()):
                 print(f"  - {var}: {count}回")
-            print(f"  📊 総読み込み数: {total_reads}回")
+            print(f"  総読み込み数: {total_reads}回")
         else:
             print(f"  なし")
 
-        print(f"✏️ 変数書き込み:")
+        print(f"変数書き込み:")
         if variable_writes:
             total_writes = sum(variable_writes.values())
             for var, count in sorted(variable_writes.items()):
                 print(f"  - {var}: {count}回")
-            print(f"  📊 総書き込み数: {total_writes}回")
+            print(f"  総書き込み数: {total_writes}回")
         else:
             print(f"  なし")
 
-        print(f"📌 リテラル値:")
+        print(f"リテラル値:")
         if literal_values:
             for literal in literal_values:
                 print(f"  - {literal}")
@@ -339,10 +311,6 @@ def analyze_top_level_variables(module_cfg, function_calls):
 
 
 def extract_variables_from_expression(expression):
-    """
-    式から変数名を抽出
-    例: "x + y" → ["x", "y"]
-    """
     import re
 
     # 変数名のパターンを抽出（識別子）
@@ -358,10 +326,6 @@ def extract_variables_from_expression(expression):
 
 
 def analyze_top_level_code(file_path):
-    """
-    トップレベル（モジュールレベル）コードの変数使用を解析
-    fast_cfgs_from_sourceを使用してモジュール全体の変数を検出
-    """
     if VERBOSE_OUTPUT:
         print(f"\n{'='*40}")
         print("トップレベルコード解析 (fast_cfgs_from_source)")
@@ -382,16 +346,16 @@ def analyze_top_level_code(file_path):
 
         if not module_cfg:
             if VERBOSE_OUTPUT:
-                print("❌ <module> CFGが見つかりませんでした")
+                print("<module> CFGが見つかりませんでした")
                 print(f"利用可能なCFG: {list(all_cfgs.keys())}")
             return {}
 
         if VERBOSE_OUTPUT:
-            print(f"✅ {module_cfg_name} CFG検出: {len(module_cfg.nodes())}ノード, {len(module_cfg.edges())}エッジ")
+            print(f"{module_cfg_name} CFG検出: {len(module_cfg.nodes())}ノード, {len(module_cfg.edges())}エッジ")
 
         # モジュール内のステートメントを表示
         if VERBOSE_OUTPUT:
-            print(f"\n📜 モジュールステートメント:")
+            print(f"\nモジュールステートメント:")
         function_calls = []
         function_definitions = []
 
@@ -435,13 +399,13 @@ def analyze_top_level_code(file_path):
 
         # 関数呼び出しと定義の関連を分析
         if VERBOSE_OUTPUT:
-            print(f"\n🔗 関数呼び出しと定義の関連分析:")
-            print(f"📞 関数呼び出し: {len(function_calls)}個")
+            print(f"\n関数呼び出しと定義の関連分析:")
+            print(f"関数呼び出し: {len(function_calls)}個")
             for call in function_calls:
                 print(f"  - {call['function_name']}() ノード[{call['node_index']}-{call['stmt_index']}] (addr:{call['node_addr']})")
                 print(f"    ステートメント: {call['statement']}")
 
-            print(f"🏗️ 関数定義: {len(function_definitions)}個")
+            print(f"関数定義: {len(function_definitions)}個")
             for defn in function_definitions:
                 print(f"  - {defn['function_name']}() ノード[{defn['node_index']}-{defn['stmt_index']}] (addr:{defn['node_addr']})")
                 print(f"    ステートメント: {defn['statement']}")
@@ -449,7 +413,7 @@ def analyze_top_level_code(file_path):
         # 関数名の対応関係を分析
         if function_calls and function_definitions:
             if VERBOSE_OUTPUT:
-                print(f"\n🔄 関数名対応関係:")
+                print(f"\n関数名対応関係:")
             call_names = {call['function_name'] for call in function_calls}
             def_names = {defn['function_name'] for defn in function_definitions}
 
@@ -459,11 +423,11 @@ def analyze_top_level_code(file_path):
 
             if matching_functions:
                 if VERBOSE_OUTPUT:
-                    print(f"  ✅ 呼び出し⇔定義が対応: {sorted(matching_functions)}")
+                    print(f"呼び出し⇔定義が対応: {sorted(matching_functions)}")
 
                 # 対応する関数の引数とパラメータの解析
                 if VERBOSE_OUTPUT:
-                    print(f"\n🔗 引数⇔パラメータ対応解析:")
+                    print(f"\n引数⇔パラメータ対応解析:")
                 for func_name in matching_functions:
                     # 関数呼び出しから引数を抽出
                     call_info = next((call for call in function_calls if call['function_name'] == func_name), None)
@@ -471,14 +435,14 @@ def analyze_top_level_code(file_path):
 
                     if call_info and def_info:
                         if VERBOSE_OUTPUT:
-                            print(f"  🎯 関数 {func_name}:")
+                            print(f"関数 {func_name}:")
 
                         # 呼び出しから引数を抽出
                         call_stmt = call_info['statement']
                         args = extract_function_arguments(call_stmt, func_name)
                         if VERBOSE_OUTPUT:
-                            print(f"    📞 呼び出し: {call_stmt}")
-                            print(f"    📥 引数: {args}")
+                            print(f"呼び出し: {call_stmt}")
+                            print(f"引数: {args}")
 
                         # 関数定義からパラメータを取得（既に解析済みの関数情報を活用）
                         try:
@@ -491,46 +455,46 @@ def analyze_top_level_code(file_path):
                                 params = list(var_analysis['parameters'])  # setをlistに変換
 
                                 if VERBOSE_OUTPUT:
-                                    print(f"    🏗️ 定義: {def_info['statement']}")
-                                    print(f"    📤 パラメータ: {params}")
+                                    print(f"定義: {def_info['statement']}")
+                                    print(f"パラメータ: {params}")
 
                                 # 引数とパラメータの対応
                                 if len(args) == len(params):
                                     if VERBOSE_OUTPUT:
-                                        print(f"    🔗 対応関係:")
+                                        print(f"対応関係:")
                                     for i, (arg, param) in enumerate(zip(args, params)):
                                         if VERBOSE_OUTPUT:
                                             print(f"      [{i}] 引数 '{arg}' → パラメータ '{param}'")
-                                            print(f"          ✅ 値 {arg} がパラメータ {param} に渡される")
+                                            print(f"         値 {arg} がパラメータ {param} に渡される")
                                 else:
                                     if VERBOSE_OUTPUT:
-                                        print(f"    ⚠️ 引数数({len(args)})とパラメータ数({len(params)})が不一致")
+                                        print(f"引数数({len(args)})とパラメータ数({len(params)})が不一致")
                                         if len(args) > 0 and len(params) > 0:
-                                            print(f"    🔍 部分対応:")
+                                            print(f"部分対応:")
                                             min_len = min(len(args), len(params))
                                             for i in range(min_len):
                                                 print(f"      [{i}] 引数 '{args[i]}' → パラメータ '{params[i]}'")
                         except Exception as e:
                             if VERBOSE_OUTPUT:
-                                print(f"    ❌ パラメータ取得エラー: {e}")
+                                print(f" パラメータ取得エラー: {e}")
                                 import traceback
                                 traceback.print_exc()
 
             if call_only:
                 if VERBOSE_OUTPUT:
-                    print(f"  📞 呼び出しのみ: {sorted(call_only)}")
+                    print(f"呼び出しのみ: {sorted(call_only)}")
             if def_only:
                 if VERBOSE_OUTPUT:
-                    print(f"  🏗️ 定義のみ: {sorted(def_only)}")
+                    print(f"定義のみ: {sorted(def_only)}")
 
         # 🆕 トップレベル変数読み込み・書き込み解析
         if VERBOSE_OUTPUT:
-            print(f"\n📊 トップレベル変数読み込み・書き込み解析:")
+            print(f"\n トップレベル変数読み込み・書き込み解析:")
         top_level_vars = analyze_top_level_variables(module_cfg, function_calls)
 
         # ノードの詳細属性を調査
         if VERBOSE_OUTPUT:
-            print(f"\n🔍 ノード詳細属性調査:")
+            print(f"\nノード詳細属性調査:")
             for i, node in enumerate(module_cfg.nodes()):
                 print(f"\nノード {i} (addr: {getattr(node, 'addr', 'unknown')}):")
                 print(f"  型: {type(node).__name__}")
@@ -563,7 +527,7 @@ def analyze_top_level_code(file_path):
 
         # CFGエッジ情報を調査
         if VERBOSE_OUTPUT:
-            print(f"\n🔗 CFGエッジ関係:")
+            print(f"\nCFGエッジ関係:")
             print(f"エッジ数: {len(module_cfg.edges())}")
             for i, (src, dst) in enumerate(module_cfg.edges()):
                 src_addr = getattr(src, 'addr', 'unknown')
@@ -581,7 +545,7 @@ def analyze_top_level_code(file_path):
         # トップレベル変数を抽出
         top_level_vars = extract_top_level_variables(module_cfg)
         if VERBOSE_OUTPUT:
-            print(f"\n🎯 トップレベル変数: {sorted(top_level_vars)}")
+            print(f"\nトップレベル変数: {sorted(top_level_vars)}")
 
         # トップレベル変数の読み込み・書き込み数を解析
         if top_level_vars:
@@ -589,21 +553,21 @@ def analyze_top_level_code(file_path):
             top_level_writes = count_top_level_writes(module_cfg, top_level_vars)
 
             if VERBOSE_OUTPUT:
-                print(f"\n📖 トップレベル読み込み数:")
+                print(f"\nトップレベル読み込み数:")
                 total_reads = 0
                 for var in sorted(top_level_vars):
                     count = top_level_reads[var]
                     total_reads += count
                     print(f"  - {var}: {count}回")
 
-                print(f"\n✏️ トップレベル書き込み数:")
+                print(f"\nトップレベル書き込み数:")
                 total_writes = 0
                 for var in sorted(top_level_vars):
                     count = top_level_writes[var]
                     total_writes += count
                     print(f"  - {var}: {count}回")
 
-                print(f"\n📊 トップレベル統計:")
+                print(f"\nトップレベル統計:")
                 print(f"  変数種類数: {len(top_level_vars)}個")
                 print(f"  総読み込み数: {total_reads}回")
                 print(f"  総書き込み数: {total_writes}回")
@@ -631,21 +595,17 @@ def analyze_top_level_code(file_path):
             }
         else:
             if VERBOSE_OUTPUT:
-                print("⚠️ トップレベル変数が見つかりませんでした")
+                print("トップレベル変数が見つかりませんでした")
             return {'top_level_analysis': top_level_vars}  # 空でも分析結果を返す
 
     except Exception as e:
-        print(f"❌ トップレベル解析エラー: {e}")
+        print(f"トップレベル解析エラー: {e}")
         import traceback
         traceback.print_exc()
         return {}
 
 
 def extract_top_level_variables(module_cfg):
-    """
-    モジュールレベルのCFGから変数を抽出
-    関数名は除外し、実際のデータ変数のみを対象とする
-    """
     import builtins
     import re
 
@@ -716,9 +676,6 @@ def extract_top_level_variables(module_cfg):
 
 
 def count_top_level_reads(module_cfg, top_level_vars):
-    """
-    トップレベルでの変数読み込み数をカウント
-    """
     import re
 
     read_counts = {var: 0 for var in top_level_vars}
@@ -760,9 +717,6 @@ def count_top_level_reads(module_cfg, top_level_vars):
 
 
 def count_top_level_writes(module_cfg, top_level_vars):
-    """
-    トップレベルでの変数書き込み数をカウント
-    """
     import re
 
     write_counts = {var: 0 for var in top_level_vars}
@@ -792,10 +746,6 @@ def count_top_level_writes(module_cfg, top_level_vars):
 
 
 def analyze_compound_assignments(func_obj, var_analysis):
-    """
-    複合代入演算子の使用を分析
-    +=, -=, *=, /= などの演算子を検出し、読み込みと書き込みの両方をカウント
-    """
     import re
 
     if VERBOSE_OUTPUT:
@@ -857,7 +807,7 @@ def analyze_compound_assignments(func_obj, var_analysis):
     # 結果表示
     total_compound_ops = sum(len(ops) for ops in compound_assignments.values())
     if VERBOSE_OUTPUT:
-        print(f"  🎯 複合代入演算子の使用数:")
+        print(f"複合代入演算子の使用数:")
 
         for var in sorted(user_defined_vars):
             ops = compound_assignments[var]
@@ -868,7 +818,7 @@ def analyze_compound_assignments(func_obj, var_analysis):
             else:
                 print(f"    - {var}: 0回")
 
-        print(f"  📊 総複合代入演算子数: {total_compound_ops}回")
+        print(f"総複合代入演算子数: {total_compound_ops}回")
 
     # 詳細デバッグ情報（コメントアウト）
     # if all_compound_refs:
@@ -881,15 +831,10 @@ def analyze_compound_assignments(func_obj, var_analysis):
 
 
 def analyze_variable_reads(func_obj, var_analysis, compound_assignments=None):
-    """
-    独自定義変数の読み込み数を解析
-    代入演算子の左辺以外で登場する変数の数をカウント
-    複合代入演算子の場合は読み込みとしてもカウント
-    """
     import re
 
     if VERBOSE_OUTPUT:
-        print(f"\n📖 変数読み込み数解析:")
+        print(f"\n変数読み込み数解析:")
 
     # 独自定義変数のリスト
     user_defined_vars = var_analysis['parameters'] | var_analysis['local_vars']
@@ -929,21 +874,21 @@ def analyze_variable_reads(func_obj, var_analysis, compound_assignments=None):
             if compound_count > 0:
                 read_counts[var] += compound_count
                 if VERBOSE_OUTPUT:
-                    print(f"  🔄 {var}の複合代入演算子による読み込み: +{compound_count}回")
+                    print(f" {var}の複合代入演算子による読み込み: +{compound_count}回")
 
     # 結果表示
     if VERBOSE_OUTPUT:
-        print(f"  🎯 独自定義変数の読み込み数:")
+        print(f" 独自定義変数の読み込み数:")
         total_reads = 0
         for var in sorted(user_defined_vars):
             count = read_counts[var]
             total_reads += count
             print(f"    - {var}: {count}回")
 
-        print(f"  📊 総読み込み数: {total_reads}回")
+        print(f"総読み込み数: {total_reads}回")
 
     # 詳細デバッグ情報（コメントアウト）
-    print(f"\n  🔍 読み込み詳細 (デバッグ情報):")
+    print(f"\n読み込み詳細 (デバッグ情報):")
     for ref in all_references:
         print(f"    {ref['variable']}: {ref['count']}回 (ノード {ref['node_addr']})")
         print(f"      Statement: {ref['statement'][:80]}...")
@@ -952,14 +897,10 @@ def analyze_variable_reads(func_obj, var_analysis, compound_assignments=None):
 
 
 def analyze_variable_writes(func_obj, var_analysis, compound_assignments=None):
-    """
-    独自定義変数の書き込み数を解析
-    代入演算子の左辺、複合代入演算子、for文のループ変数をカウント
-    """
     import re
 
     if VERBOSE_OUTPUT:
-        print(f"\n✏️ 変数書き込み数解析:")
+        print(f"\n変数書き込み数解析:")
 
     # 独自定義変数のリスト
     user_defined_vars = var_analysis['parameters'] | var_analysis['local_vars']
@@ -1130,11 +1071,11 @@ def analyze_variable_writes(func_obj, var_analysis, compound_assignments=None):
 
     # 方法4: for文の直接検出によるループ変数識別
     if VERBOSE_OUTPUT:
-        print(f"\n  🔍 for文パターンマッチングによるループ変数検出:")
+        print(f"\n for文パターンマッチングによるループ変数検出:")
 
     # デバッグ: i, j, l を含む全てのステートメントを調査
     if VERBOSE_OUTPUT:
-        print(f"\n  🔍 デバッグ: i, j, l を含む全ステートメント調査:")
+        print(f"\nデバッグ: i, j, l を含む全ステートメント調査:")
     for node in func_obj.ast.nodes:
         if hasattr(node, 'statements') and node.statements:
             for stmt in node.statements:
@@ -1149,7 +1090,7 @@ def analyze_variable_writes(func_obj, var_analysis, compound_assignments=None):
                         for_keywords = ['for', 'FOR', 'CONTROL_STRUCTURE', 'iterator', 'iter']
                         found_keywords = [kw for kw in for_keywords if kw.lower() in stmt_str.lower()]
                         if found_keywords:
-                            print(f"      🎯 for関連キーワード: {found_keywords}")
+                            print(f"for関連キーワード: {found_keywords}")
 
     for node in func_obj.ast.nodes:
         if hasattr(node, 'statements') and node.statements:
@@ -1186,7 +1127,7 @@ def analyze_variable_writes(func_obj, var_analysis, compound_assignments=None):
                         break
 
     if VERBOSE_OUTPUT:
-        print(f"\n  ✅ 確定したループ変数: {sorted(loop_variables)}")
+        print(f"\n 確定したループ変数: {sorted(loop_variables)}")
 
     # for文関連のステートメントを詳しく調査（簡潔版）（コメントアウト）
     # print(f"\n  🔍 for文構造の概要:")
@@ -1232,7 +1173,7 @@ def analyze_variable_writes(func_obj, var_analysis, compound_assignments=None):
                             write_count = 1
                             detected_loop_writes.add(write_key)
                             if VERBOSE_OUTPUT:
-                                print(f"      ⭐ ループ変数書き込み検出 (LOCAL定義): {var} (ノード {node.addr})")
+                                print(f"ループ変数書き込み検出 (LOCAL定義): {var} (ノード {node.addr})")
 
                         # for文パターンでも検出
                         import re
@@ -1241,7 +1182,7 @@ def analyze_variable_writes(func_obj, var_analysis, compound_assignments=None):
                             write_count = 1
                             detected_loop_writes.add(write_key)
                             if VERBOSE_OUTPUT:
-                                print(f"      ⭐ ループ変数書き込み検出 (for文パターン): {var} (ノード {node.addr})")
+                                print(f"ループ変数書き込み検出 (for文パターン): {var} (ノード {node.addr})")
 
                     if write_count > 0:  # カウントされた場合のみ記録
                         write_counts[var] += write_count
@@ -1257,7 +1198,7 @@ def analyze_variable_writes(func_obj, var_analysis, compound_assignments=None):
 
     # 結果表示
     if VERBOSE_OUTPUT:
-        print(f"\n  🎯 独自定義変数の書き込み数:")
+        print(f"\n 独自定義変数の書き込み数:")
         total_writes = 0
         for var in sorted(user_defined_vars):
             count = write_counts[var]
@@ -1265,10 +1206,10 @@ def analyze_variable_writes(func_obj, var_analysis, compound_assignments=None):
             loop_mark = " [ループ変数]" if var in loop_variables else ""
             print(f"    - {var}: {count}回{loop_mark}")
 
-        print(f"  📊 総書き込み数: {total_writes}回")
+        print(f"総書き込み数: {total_writes}回")
 
     # 詳細デバッグ情報（コメントアウト）
-    print(f"\n  🔍 書き込み詳細 (デバッグ情報):")
+    print(f"\n 書き込み詳細 (デバッグ情報):")
     for write in all_writes:
         loop_mark = " [ループ変数]" if write['is_loop_var'] else ""
         print(f"    {write['variable']}: {write['count']}回{loop_mark} (ノード {write['node_addr']})")
@@ -1278,10 +1219,6 @@ def analyze_variable_writes(func_obj, var_analysis, compound_assignments=None):
 
 
 def count_variable_writes(stmt_str, var_name, node_addr, detected_loop_writes):
-    """
-    ステートメント内での変数書き込み回数をカウント
-    代入演算子の左辺、複合代入演算子、for文のループ変数を検出
-    """
     import re
 
     # まずfor文パターンを先にチェック（UnsupportedStmt内でも検出）
@@ -1304,14 +1241,14 @@ def count_variable_writes(stmt_str, var_name, node_addr, detected_loop_writes):
     if is_for_loop:
         return 1  # for文のループ変数なので書き込み1回
 
-    # ⭐ 重要: tmp.__next__()からの代入（ループ変数の実際の書き込み）を検出
+    #重要: tmp.__next__()からの代入（ループ変数の実際の書き込み）を検出
     loop_assignment_pattern = rf'\b{re.escape(var_name)}\s*=\s*tmp\d+\.__next__\(\)'
     if re.search(loop_assignment_pattern, stmt_str):
         # 重複チェック：同じ変数の同じノードでの書き込みは1回だけカウント
         write_key = (var_name, node_addr)
         if write_key not in detected_loop_writes:
             detected_loop_writes.add(write_key)
-            print(f"      ⭐ ループ変数書き込み検出 (tmp.__next__代入): {var_name} (ノード {node_addr})")
+            print(f"ループ変数書き込み検出 (tmp.__next__代入): {var_name} (ノード {node_addr})")
             return 1
         else:
             # 既に検出済みの場合はカウントしない
@@ -1353,12 +1290,6 @@ def count_variable_writes(stmt_str, var_name, node_addr, detected_loop_writes):
 
 
 def count_variable_references(stmt_str, var_name, node_addr):
-    """
-    ステートメント内での変数参照回数をカウント
-    代入の左辺は除外し、重複も除去する
-    複合代入演算子の場合は読み込みとしてカウント
-    ループ変数は条件判定での読み込みも追加カウント
-    """
     import re
 
     # pyjoernの内部表現による重複を避けるため、低レベル表現のみ除外
@@ -1408,7 +1339,7 @@ def analyze_variables_from_statements(func_obj):
     実行結果で分かったstatements構造を基に変数を特定
     """
     if VERBOSE_OUTPUT:
-        print(f"\n🔍 変数解析 (statements基準):")
+        print(f"\n変数解析 (statements基準):")
 
     # builtinsライブラリで組み込み識別子を取得
     import builtins
@@ -1484,14 +1415,14 @@ def analyze_variables_from_statements(func_obj):
     real_local_vars = {var for var in local_vars if not var.startswith('tmp')}
     excluded_tmp_vars = local_vars - real_local_vars    # 結果表示
     if VERBOSE_OUTPUT:
-        print(f"  📋 パラメータ: {len(parameters)}個")
+        print(f"パラメータ: {len(parameters)}個")
         if parameters:
             for param in sorted(parameters):
                 print(f"    - {param}")
         else:
             print(f"    なし")
 
-        print(f"  🎯 ユーザー定義ローカル変数: {len(real_local_vars)}個")
+        print(f"ユーザー定義ローカル変数: {len(real_local_vars)}個")
         if real_local_vars:
             for var in sorted(real_local_vars):
                 print(f"    - {var}")
@@ -1499,18 +1430,18 @@ def analyze_variables_from_statements(func_obj):
             print(f"    なし")
 
         if excluded_tmp_vars:
-            print(f"  ⚠️  除外された一時変数: {len(excluded_tmp_vars)}個")
+            print(f"除外された一時変数: {len(excluded_tmp_vars)}個")
             for var in sorted(excluded_tmp_vars):
                 print(f"    - {var} (pyjoern内部生成)")
 
-        print(f"  🔧 組み込み関数/変数: {len(builtin_funcs)}個")
+        print(f"組み込み関数/変数: {len(builtin_funcs)}個")
         if builtin_funcs:
             for func in sorted(builtin_funcs):
                 print(f"    - {func}")
         else:
             print(f"    なし")
 
-        print(f"  🔀 制御構造: {len(control_structures)}個")
+        print(f"制御構造: {len(control_structures)}個")
         if control_structures:
             for i, ctrl in enumerate(control_structures[:3]):
                 print(f"    {i+1}. {ctrl}")
@@ -1522,7 +1453,7 @@ def analyze_variables_from_statements(func_obj):
     # 独自定義変数の種類数を計算（一時変数除外）
     user_defined_count = len(parameters) + len(real_local_vars)
     if VERBOSE_OUTPUT:
-        print(f"\n✨ 独自定義変数の種類数: {user_defined_count}個")
+        print(f"\n 独自定義変数の種類数: {user_defined_count}個")
         print(f"   (パラメータ: {len(parameters)}個 + ローカル変数: {len(real_local_vars)}個)")
         print(f"   ※ pyjoern内部生成の一時変数({len(excluded_tmp_vars)}個)は除外")
 
@@ -1541,12 +1472,9 @@ def analyze_variables_from_statements(func_obj):
         'excluded_tmp_vars': excluded_tmp_vars  # 除外された一時変数
     }
 def main():
-    """
-    メイン関数
-    """
-    print("🔍 シンプルAST構造表示ツール")
-    print("📖 pyjoernのAST構造を詳しく調査")
-    print("🎯 独自定義変数の種類数を取得")
+    print("シンプルAST構造表示ツール")
+    print("pyjoernのAST構造を詳しく調査")
+    print("独自定義変数の種類数を取得")
 
     # テストファイル
     test_files = ["whiletest.py"]
@@ -1558,7 +1486,7 @@ def main():
         try:
             if VERBOSE_OUTPUT:
                 print(f"\n{'='*60}")
-                print(f"📄 ファイル: {test_file}")
+                print(f"ファイル: {test_file}")
                 print(f"{'='*60}")
 
             # AST構造表示
@@ -1567,7 +1495,7 @@ def main():
             # ノードタイプ分析（変数解析を含む）
             analyze_ast_node_types(test_file)
 
-            # 🆕 トップレベルコード解析を追加
+            # トップレベルコード解析を追加
             top_level_analysis = analyze_top_level_code(test_file)
 
             # トップレベル結果を保存
@@ -1605,9 +1533,9 @@ def main():
             all_results[test_file] = file_results
 
         except FileNotFoundError:
-            print(f"\n❌ ファイルが見つかりません: {test_file}")
+            print(f"\n ファイルが見つかりません: {test_file}")
         except Exception as e:
-            print(f"\n❌ {test_file} の解析エラー: {e}")
+            print(f"\n {test_file} の解析エラー: {e}")
             import traceback
             traceback.print_exc()
 
@@ -1616,18 +1544,15 @@ def main():
 
 
 def print_summary(all_results, top_level_results=None):
-    """
-    全体の分析結果サマリーを表示
-    """
     print(f"\n{'='*60}")
-    print("📊 総合分析結果サマリー")
+    print("総合分析結果サマリー")
     print(f"{'='*60}")
 
     # トップレベル分析結果の表示
     if top_level_results:
-        print(f"\n📊 トップレベル分析結果:")
+        print(f"\n トップレベル分析結果:")
         for file_name, result in top_level_results.items():
-            print(f"  📄 {file_name}:")
+            print(f"{file_name}:")
             # user_defined_countの代わりにvariable_countを使用
             var_count = result.get('variable_count', 0)
             print(f"    - トップレベル変数: {var_count}個")
@@ -1645,7 +1570,7 @@ def print_summary(all_results, top_level_results=None):
     total_variable_writes = 0
 
     for file_name, file_results in all_results.items():
-        print(f"\n📄 {file_name}:")
+        print(f"\n {file_name}:")
 
         file_user_vars = 0
         file_builtin_vars = 0
@@ -1660,7 +1585,7 @@ def print_summary(all_results, top_level_results=None):
                 total_reads = result.get('total_reads', 0)
                 total_writes = result.get('total_writes', 0)
 
-                print(f"  🌐 トップレベル:")
+                print(f"      トップレベル:")
                 print(f"    - トップレベル変数: {var_count}個")
                 print(f"    - 読み込み数: {total_reads}回")
                 print(f"    - 書き込み数: {total_writes}回")
@@ -1676,7 +1601,7 @@ def print_summary(all_results, top_level_results=None):
             write_counts = result.get('write_counts', {})
             compound_assignments = result.get('compound_assignments', {})
 
-            print(f"  🔧 関数 {func_name}:")
+            print(f"     関数 {func_name}:")
             print(f"    - 独自定義変数: {user_count}個")
             print(f"    - 組み込み変数: {builtin_count}個")
             print(f"    - 制御構造: {result['control_structures']}個")
@@ -1718,33 +1643,18 @@ def print_summary(all_results, top_level_results=None):
             file_builtin_vars += builtin_count
             total_functions += 1
 
-        print(f"  📈 ファイル合計: 独自定義{file_user_vars}個, 組み込み{file_builtin_vars}個, 読み込み{file_reads}回, 書き込み{file_writes}回")
+        print(f"  ファイル合計: 独自定義{file_user_vars}個, 組み込み{file_builtin_vars}個, 読み込み{file_reads}回, 書き込み{file_writes}回")
         total_user_vars += file_user_vars
         total_builtin_vars += file_builtin_vars
         total_variable_reads += file_reads
         total_variable_writes += file_writes
 
-    print(f"\n🎯 【最終結果】")
+    print(f"\n 【最終結果】")
     print(f"  総関数数: {total_functions}個")
     print(f"  独自定義変数の総種類数: {total_user_vars}個")
     print(f"  組み込み変数の総種類数: {total_builtin_vars}個")
     print(f"  独自定義変数の総読み込み数: {total_variable_reads}回")
     print(f"  独自定義変数の総書き込み数: {total_variable_writes}回")
-
-    if total_user_vars + total_builtin_vars > 0:
-        ratio = (total_user_vars / (total_user_vars + total_builtin_vars)) * 100
-        print(f"  独自定義率: {ratio:.1f}%")
-
-    if total_user_vars > 0:
-        avg_reads = total_variable_reads / total_user_vars
-        avg_writes = total_variable_writes / total_user_vars
-        print(f"  変数あたり平均読み込み数: {avg_reads:.1f}回")
-        print(f"  変数あたり平均書き込み数: {avg_writes:.1f}回")
-
-    print(f"\n✅ 目標達成: Pythonの組み込み関数以外の独自定義変数の種類数 = {total_user_vars}個")
-    print(f"✅ 新機能: 独自定義変数の読み込み数 = {total_variable_reads}回")
-    print(f"✅ 新機能: 独自定義変数の書き込み数 = {total_variable_writes}回")
-    print(f"✅ 新機能: 複合代入演算子解析機能を追加")
 
 
 if __name__ == "__main__":
