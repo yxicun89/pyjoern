@@ -190,6 +190,7 @@ def extract_accurate_features(cfg, cfg_name, source_code=None, filename=None):
 
     loop_count = source_loops + recursive_loops
     features['loop_statements'] = loop_count
+    features['recursive_loops'] = recursive_loops  # 再帰数を別途保存
 
     # 3. 条件文検出（言語別ソースコード検索）
     conditional_count = 0
@@ -278,7 +279,7 @@ def analyze_function_metadata(func_obj):
 
     return metadata
 
-def display_accurate_summary(all_features):
+def display_accurate_summary(all_features, source_code="", source_file=""):
     """正確な特徴量結果を表示（簡潔版）"""
     print(f"\n{'='*80}")
     print(f"CFG特徴量結果")
@@ -303,9 +304,33 @@ def display_accurate_summary(all_features):
         all_connected_components = [features.get('connected_components', 0) for features in all_features.values()]
         total_connected = 1 if all(cc > 0 for cc in all_connected_components) else 0
 
-        # ループと条件文: 関数レベルのみから計算（重複除去）
-        function_loops = sum(features.get('loop_statements', 0) for features in function_features.values())
-        function_conditions = sum(features.get('conditional_statements', 0) for features in function_features.values())
+        # ループと条件文: ファイル全体で1回検索（重複除去）
+        if source_code:
+            language = detect_language(source_code, source_file) if source_file else 'unknown'
+            clean_source = remove_comments(source_code, language)
+
+            # ファイル全体のループ数
+            file_while_count = clean_source.count('while ')
+            file_for_count = clean_source.count('for ')
+            file_do_count = clean_source.count('do ') if language in ['c_cpp', 'java'] else 0
+            file_source_loops = file_while_count + file_for_count + file_do_count
+
+            # ファイル全体の条件文数
+            elif_count = clean_source.count('elif ') if language == 'python' else 0
+            match_count = clean_source.count('match ') if language == 'python' else 0
+            switch_count = clean_source.count('switch ') if language in ['c_cpp', 'java', 'javascript'] else 0
+            if_count = clean_source.count('if ') - elif_count
+            file_conditions = if_count + elif_count + file_while_count + match_count + switch_count + file_for_count
+
+            # 再帰検出は関数レベルで実施
+            total_recursive = sum(features.get('recursive_loops', 0) for features in function_features.values() if 'recursive_loops' in features)
+
+            # 正確な合計
+            accurate_loops = file_source_loops + total_recursive
+            accurate_conditions = file_conditions
+        else:
+            accurate_loops = 0
+            accurate_conditions = 0
 
         # 構造的特徴: 全体から計算（関数+モジュール）
         total_cycles = sum(features.get('cycles', 0) for features in all_features.values())
@@ -313,14 +338,14 @@ def display_accurate_summary(all_features):
         total_complexity = sum(features.get('cyclomatic_complexity', 0) for features in all_features.values())
 
         print(f"  total_connected_components: {total_connected}")
-        print(f"  function_loop_statements: {function_loops} (関数レベルのみ、重複除去)")
-        print(f"  function_conditional_statements: {function_conditions} (関数レベルのみ、重複除去)")
+        print(f"  accurate_loop_statements: {accurate_loops} (ファイル全体検索 + 関数別再帰)")
+        print(f"  accurate_conditional_statements: {accurate_conditions} (ファイル全体検索)")
         print(f"  total_cycles: {total_cycles}")
         print(f"  total_paths: {total_paths}")
         print(f"  total_cyclomatic_complexity: {total_complexity}")
 
-        # クラスタリング用ベクトル表示（関数レベル特徴量使用）
-        clustering_vector = [total_connected, function_loops, function_conditions, total_cycles, total_paths, total_complexity]
+        # クラスタリング用ベクトル表示（正確な値使用）
+        clustering_vector = [total_connected, accurate_loops, accurate_conditions, total_cycles, total_paths, total_complexity]
         print(f"  📊 クラスタリング用ベクトル: {clustering_vector}")
 
     print(f"\n個別CFG詳細:")
@@ -373,11 +398,11 @@ def analyze_accurate_cfg(source_file):
     except Exception as e:
         print(f"モジュール解析エラー: {e}")
 
-    display_accurate_summary(all_features)
+    display_accurate_summary(all_features, source_code, source_file)
     return all_features
 
 def main():
-    test_files = ["whiletest.py"]
+    test_files = ["noi.py"]
 
     for test_file in test_files:
         try:
