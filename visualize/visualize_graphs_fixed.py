@@ -727,5 +727,5 @@ def analyze_and_visualize_file(source_file, output_dir="graph_images"):
 
 if __name__ == "__main__":
     # whiletest.pyを解析
-    # analyze_and_visualize_file("whiletest.py")
-    analyze_and_visualize_file("textbook.py")
+    analyze_and_visualize_file("whiletest.py")
+    # analyze_and_visualize_file("textbook.py")

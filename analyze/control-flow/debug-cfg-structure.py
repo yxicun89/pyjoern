@@ -94,9 +94,11 @@ def main():
     """メイン関数"""
     # テスト用ファイルを解析
     test_files = [
-        "whiletest.py",
-        "../whiletest.py",
-        "../../visualize/whiletest.py"
+        "while.py"
+        # "noi.py"
+        # "whiletest.py",
+        # "../whiletest.py",
+        # "../../visualize/whiletest.py"
     ]
 
     for test_file in test_files:

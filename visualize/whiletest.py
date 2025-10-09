@@ -1,10 +1,12 @@
 def example(x):
   if x > 0:
       for i in range(x):
-          if i % 2 == 0:
-              print(f"Even: {i}")
+          if i % 3 == 0:
+              print(f"Divisible by 3: {i}")
+          elif i % 3 == 1:
+              print(f"Remainder 1: {i}")
           else:
-              print(f"Odd: {i}")
+              print(f"Remainder 2: {i}")
   else:
       while x < 0:
           print(f"Negative: {x}")
