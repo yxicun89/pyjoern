@@ -1,3 +1,5 @@
+#これがデータフローから特徴量抽出するコード
+
 from pyjoern import parse_source, fast_cfgs_from_source
 import networkx as nx
 
@@ -7,7 +9,7 @@ def analyze_ast_node_types(file_path):
     try:
         functions = parse_source(file_path)
 
-        for func_name, func_obj in functions.items():            
+        for func_name, func_obj in functions.items():
             # statements解析による変数抽出
             var_analysis = analyze_variables_from_statements(func_obj)
 
@@ -49,8 +51,6 @@ def get_function_parameters(func_obj):
 
 def analyze_top_level_variables(module_cfg):
     """トップレベル変数の読み書きをカウント（関数呼び出し解析なし）"""
-    print(f"\nトップレベル変数使用分析:")
-
     # 変数の読み込み・書き込みをカウント
     variable_reads = {}
     variable_writes = {}
@@ -74,25 +74,6 @@ def analyze_top_level_variables(module_cfg):
                         # 組み込み変数や関数定義を除外
                         if var_name not in ['print', 'range', '__name__'] and not value.startswith('def'):
                             variable_writes[var_name] = variable_writes.get(var_name, 0) + 1
-
-    # 結果の表示
-        print(f"変数読み込み:")
-        if variable_reads:
-            total_reads = sum(variable_reads.values())
-            for var, count in sorted(variable_reads.items()):
-                print(f"  - {var}: {count}回")
-            print(f"  総読み込み数: {total_reads}回")
-        else:
-            print(f"  なし")
-
-        print(f"変数書き込み:")
-        if variable_writes:
-            total_writes = sum(variable_writes.values())
-            for var, count in sorted(variable_writes.items()):
-                print(f"  - {var}: {count}回")
-            print(f"  総書き込み数: {total_writes}回")
-        else:
-            print(f"  なし")
 
     return {
         'variable_reads': variable_reads,
@@ -396,17 +377,6 @@ def analyze_variable_reads(func_obj, var_analysis, compound_assignments=None):
             if compound_count > 0:
                 read_counts[var] += compound_count
 
-    # 結果表示
-    print(f" 独自定義変数の読み込み数:")
-    total_reads = 0
-    for var in sorted(user_defined_vars):
-        count = read_counts[var]
-        total_reads += count
-        print(f"    - {var}: {count}回")
-
-        print(f"総読み込み数: {total_reads}回")
-
-
     return read_counts
 
 
@@ -488,17 +458,6 @@ def analyze_variable_writes(func_obj, var_analysis, compound_assignments=None):
     for param in parameters:
         write_counts[param] += 1  # 引数として値を受け取るため+1
 
-    print(f"\n 独自定義変数の書き込み数:")
-    total_writes = 0
-    for var in sorted(user_defined_vars):
-        count = write_counts[var]
-        total_writes += count
-        loop_mark = " [ループ変数]" if var in loop_variables else ""
-        param_mark = " [引数]" if var in parameters else ""
-        print(f"    - {var}: {count}回{loop_mark}{param_mark}")
-
-    print(f"総書き込み数: {total_writes}回")
-
     return write_counts
 
 
@@ -532,7 +491,6 @@ def count_variable_writes(stmt_str, var_name, node_addr, detected_loop_writes):
         write_key = (var_name, node_addr)
         if write_key not in detected_loop_writes:
             detected_loop_writes.add(write_key)
-            print(f"ループ変数書き込み検出 (tmp.__next__代入): {var_name} (ノード {node_addr})")
             return 1
         else:
             # 既に検出済みの場合はカウントしない
@@ -656,7 +614,7 @@ def analyze_variables_from_statements(func_obj):
                         'statement': stmt_str,
                         'node_addr': getattr(node, 'addr', 'unknown')
                     })
-                    
+
                     try:
                         # パターン1: <UnsupportedStmt: (PARAM,name)<SUB>1</SUB>>
                         pattern1 = r'PARAM,([a-zA-Z_][a-zA-Z0-9_]*)\)'
@@ -666,7 +624,7 @@ def analyze_variables_from_statements(func_obj):
                             if param_name.isidentifier():
                                 parameters.add(param_name)
                                 continue
-                        
+
                         # パターン2: PARAM,name:type>
                         pattern2 = r'PARAM,([a-zA-Z_][a-zA-Z0-9_]*):.*?>'
                         match2 = re.search(pattern2, stmt_str)
@@ -675,13 +633,13 @@ def analyze_variables_from_statements(func_obj):
                             if param_name.isidentifier():
                                 parameters.add(param_name)
                                 continue
-                        
+
                         # パターン3: 従来の分割方式（フォールバック）
                         param_part = stmt_str.split('PARAM,')[1]
                         param_name = param_part.split(')')[0] if ')' in param_part else param_part.split('<')[0]
                         if param_name and param_name.isidentifier():
                             parameters.add(param_name)
-                        
+
                     except Exception as e:
                         pass
 
@@ -720,202 +678,259 @@ def analyze_variables_from_statements(func_obj):
         'excluded_tmp_vars': excluded_tmp_vars  # 除外された一時変数
     }
 def main():
-    print("シンプルAST構造表示ツール")
-    print("pyjoernのAST構造を詳しく調査")
-    print("独自定義変数の種類数を取得")
+    print("📊 データフロー特徴量抽出")
 
     # テストファイル - 複数のパスを試行
     test_files = [
         "whiletest.py",
-        "../whiletest.py", 
+        "../whiletest.py",
         "../../visualize/whiletest.py",
         "../control-flow/whiletest.py",
         "../../analyze/whiletest.py"
     ]
 
-    all_results = {}
-    top_level_results = {}  # トップレベル分析結果を保存
-
     for test_file in test_files:
         try:
-            # ノードタイプ分析（変数解析を含む）
-            analyze_ast_node_types(test_file)
+            # 新しいメイン解析関数を使用
+            all_results, top_level_results = analyze_dataflow_features(test_file)
 
-            # トップレベルコード解析を追加
-            top_level_analysis = analyze_top_level_code(test_file)
+            if all_results:
+                print(f"✅ {test_file} の解析が完了しました")
 
-            # トップレベル結果を保存
-            if top_level_analysis:
-                top_level_results[test_file] = top_level_analysis
+                # 簡潔なサマリー表示
+                print_summary(all_results, top_level_results)
 
-            # 結果をファイル別に保存
-            functions = parse_source(test_file)
-            file_results = {}
+                # リスト形式の結果も表示
+                feature_list = extract_dataflow_features_as_list(test_file)
+                print(f"\n📊 データフロー特徴量ベクトル（5つの特徴量）:")
+                print(f"  [総読み込み数, 総書き込み数, 読み込み数最大値, 書き込み数最大値, 変数種類数]")
+                print(f"  {feature_list}")
 
-            for func_name, func_obj in functions.items():
-                if hasattr(func_obj, 'ast') and func_obj.ast:
-                    # 変数解析結果を取得
-                    var_analysis = analyze_variables_from_statements(func_obj)
-
-                    # 複合代入演算子解析を取得
-                    compound_assignments = analyze_compound_assignments(func_obj, var_analysis)
-
-                    # 読み込み数解析を取得（複合代入演算子結果を渡す）
-                    read_counts = analyze_variable_reads(func_obj, var_analysis, compound_assignments)
-
-                    # 書き込み数解析を取得（複合代入演算子結果を渡す）
-                    write_counts = analyze_variable_writes(func_obj, var_analysis, compound_assignments)
-
-                    # 結果を結合
-                    var_analysis['read_counts'] = read_counts
-                    var_analysis['write_counts'] = write_counts
-                    var_analysis['compound_assignments'] = compound_assignments
-                    file_results[func_name] = var_analysis
-
-            # トップレベル解析結果も追加
-            if top_level_analysis:
-                file_results['<top_level>'] = top_level_analysis
-
-            all_results[test_file] = file_results
-            
-            # ファイルの解析が成功したらループを抜ける
-            print(f"✅ {test_file} の解析が完了しました")
-            break
+                break
+            else:
+                continue
 
         except FileNotFoundError:
-            print(f"ファイルが見つかりません: {test_file}")
             continue  # 次のファイルパスを試行
         except Exception as e:
             print(f"{test_file} の解析エラー: {e}")
-            import traceback
-            traceback.print_exc()
             continue  # 次のファイルパスを試行
-    
+
     # すべてのファイルが見つからなかった場合
-    if not all_results:
+    if not any(test_files):
         print("\n⚠️  解析可能なファイルが見つかりませんでした")
         print("以下のパスを確認してください：")
         for path in test_files:
             print(f"  - {path}")
         return
 
-    # 総合結果サマリー
-    print_summary(all_results, top_level_results)
 
+def extract_dataflow_features_as_list(file_path):
+    """
+    データフロー特徴量をリスト形式で返すメイン関数（5つの特徴量）
+    他のモジュールからインポートしやすい形式
+
+    Returns:
+        list: [total_reads, total_writes, max_reads, max_writes, var_count]
+              - total_reads: 総読み込み数（関数+トップレベル）
+              - total_writes: 総書き込み数（関数+トップレベル）
+              - max_reads: 読み込み数の最大値（全変数の中で）
+              - max_writes: 書き込み数の最大値（全変数の中で）
+              - var_count: 変数の種類数（関数+トップレベル）
+    """
+    try:
+        # 解析を実行
+        all_results, top_level_results = analyze_dataflow_features(file_path)
+
+        # 結果を集計
+        total_reads = 0
+        total_writes = 0
+        all_read_counts = []  # 全ての読み込み数を記録
+        all_write_counts = []  # 全ての書き込み数を記録
+        total_var_count = 0
+
+        # 関数レベル結果の処理
+        for file_name, file_results in all_results.items():
+            for func_name, result in file_results.items():
+                # トップレベル結果は別途処理
+                if func_name == '<top_level>':
+                    continue
+
+                # 関数レベル結果の処理
+                user_count = result['user_defined_count']
+                read_counts = result.get('read_counts', {})
+                write_counts = result.get('write_counts', {})
+
+                # 合計値を加算
+                total_reads += sum(read_counts.values())
+                total_writes += sum(write_counts.values())
+                total_var_count += user_count
+
+                # 個別の読み書き数を記録（最大値計算用）
+                all_read_counts.extend(read_counts.values())
+                all_write_counts.extend(write_counts.values())
+
+        # トップレベル結果を処理
+        if top_level_results:
+            for file_name, result in top_level_results.items():
+                top_level_var_count = result.get('variable_count', 0)
+                top_level_reads = result.get('total_reads', 0)
+                top_level_writes = result.get('total_writes', 0)
+
+                # トップレベル結果を合計に加算
+                total_reads += top_level_reads
+                total_writes += top_level_writes
+                total_var_count += top_level_var_count
+
+                # トップレベルの個別読み書き数も記録
+                top_level_read_counts = result.get('reads', {})
+                top_level_write_counts = result.get('writes', {})
+                if top_level_read_counts:
+                    all_read_counts.extend(top_level_read_counts.values())
+                if top_level_write_counts:
+                    all_write_counts.extend(top_level_write_counts.values())
+
+        # 最大値を計算
+        max_reads = max(all_read_counts) if all_read_counts else 0
+        max_writes = max(all_write_counts) if all_write_counts else 0
+
+        # 5つの特徴量をリスト形式で返す
+        return [
+            total_reads,     # 総読み込み数
+            total_writes,    # 総書き込み数
+            max_reads,       # 読み込み数最大値
+            max_writes,      # 書き込み数最大値
+            total_var_count  # 変数種類数
+        ]
+
+    except Exception as e:
+        print(f"データフロー特徴量抽出エラー: {e}")
+        # エラー時はゼロで埋めたリストを返す
+        return [0, 0, 0, 0, 0]
+
+def analyze_dataflow_features(file_path):
+    """
+    データフロー特徴量を詳細に解析する内部関数
+
+    Returns:
+        tuple: (all_results, top_level_results)
+    """
+    all_results = {}
+    top_level_results = {}
+
+    try:
+        # トップレベルコード解析
+        top_level_analysis = analyze_top_level_code(file_path)
+        if top_level_analysis:
+            top_level_results[file_path] = top_level_analysis
+
+        # 関数レベル解析
+        functions = parse_source(file_path)
+        file_results = {}
+
+        for func_name, func_obj in functions.items():
+            if hasattr(func_obj, 'ast') and func_obj.ast:
+                # 変数解析結果を取得
+                var_analysis = analyze_variables_from_statements(func_obj)
+
+                # 複合代入演算子解析を取得
+                compound_assignments = analyze_compound_assignments(func_obj, var_analysis)
+
+                # 読み込み数解析を取得（複合代入演算子結果を渡す）
+                read_counts = analyze_variable_reads(func_obj, var_analysis, compound_assignments)
+
+                # 書き込み数解析を取得（複合代入演算子結果を渡す）
+                write_counts = analyze_variable_writes(func_obj, var_analysis, compound_assignments)
+
+                # 結果を結合
+                var_analysis['read_counts'] = read_counts
+                var_analysis['write_counts'] = write_counts
+                var_analysis['compound_assignments'] = compound_assignments
+                file_results[func_name] = var_analysis
+
+        # トップレベル解析結果も追加
+        if top_level_analysis:
+            file_results['<top_level>'] = top_level_analysis
+
+        all_results[file_path] = file_results
+
+        return all_results, top_level_results
+
+    except Exception as e:
+        print(f"データフロー解析エラー: {e}")
+        return {}, {}
+
+def get_dataflow_feature_vector(file_path, include_top_level=True):
+    """
+    データフロー特徴量ベクトルを取得（クラスタリング用）
+    新しい5つの特徴量に対応
+
+    Args:
+        file_path (str): 解析対象ファイルパス
+        include_top_level (bool): トップレベル変数を含めるかどうか
+
+    Returns:
+        list: [total_reads, total_writes, max_reads, max_writes, var_count]
+    """
+    # 新しい5つの特徴量を取得
+    features = extract_dataflow_features_as_list(file_path)
+
+    # include_top_levelに関係なく、全体の5つの特徴量を返す
+    # （関数レベルとトップレベルは既に統合されているため）
+    return features
 
 def print_summary(all_results, top_level_results=None):
-    print(f"\n{'='*60}")
-    print("総合分析結果サマリー")
-    print(f"{'='*60}")
+    """簡潔なサマリー表示"""
+    print(f"\n📊 解析結果サマリー")
 
-    # トップレベル分析結果の表示
-    if top_level_results:
-        print(f"\n トップレベル分析結果:")
-        for file_name, result in top_level_results.items():
-            print(f"{file_name}:")
-            # user_defined_countの代わりにvariable_countを使用
-            var_count = result.get('variable_count', 0)
-            print(f"    - トップレベル変数: {var_count}個")
-            top_level_reads = result.get('total_reads', 0)
-            top_level_writes = result.get('total_writes', 0)
-            print(f"    - 読み込み数: {top_level_reads}回")
-            print(f"    - 書き込み数: {top_level_writes}回")
-            if result.get('variables'):
-                print(f"    - 検出された変数: {', '.join(result['variables'])}")
-
+    # 最終結果のみ表示
     total_user_vars = 0
-    total_builtin_vars = 0
-    total_functions = 0
     total_variable_reads = 0
     total_variable_writes = 0
+    total_functions = 0
 
     for file_name, file_results in all_results.items():
-        print(f"\n {file_name}:")
-
-        file_user_vars = 0
-        file_builtin_vars = 0
-        file_reads = 0
-        file_writes = 0
-
         for func_name, result in file_results.items():
-            # トップレベル結果は構造が異なるので分岐
             if func_name == '<top_level>':
-                # トップレベル結果の処理
-                var_count = result.get('variable_count', 0)
-                total_reads = result.get('total_reads', 0)
-                total_writes = result.get('total_writes', 0)
-
-                print(f"      トップレベル:")
-                print(f"    - トップレベル変数: {var_count}個")
-                print(f"    - 読み込み数: {total_reads}回")
-                print(f"    - 書き込み数: {total_writes}回")
-
-                file_reads += total_reads
-                file_writes += total_writes
                 continue
 
-            # 関数レベル結果の処理
             user_count = result['user_defined_count']
-            builtin_count = len(result['builtin_funcs'])
             read_counts = result.get('read_counts', {})
             write_counts = result.get('write_counts', {})
-            compound_assignments = result.get('compound_assignments', {})
 
-            print(f"     関数 {func_name}:")
-            print(f"    - 独自定義変数: {user_count}個")
-            print(f"    - 組み込み変数: {builtin_count}個")
-            print(f"    - 制御構造: {result['control_structures']}個")
-
-            if result['parameters']:
-                print(f"    - パラメータ: {', '.join(sorted(result['parameters']))}")
-            if result['local_vars']:
-                print(f"    - ローカル変数: {', '.join(sorted(result['local_vars']))}")
-
-            # 複合代入演算子の表示
-            if compound_assignments:
-                total_compound = sum(len(ops) for ops in compound_assignments.values())
-                print(f"    - 複合代入演算子: {total_compound}回")
-                for var in sorted(compound_assignments.keys()):
-                    ops = compound_assignments[var]
-                    if ops:
-                        operators = [op_info['operator'] for op_info in ops]
-                        print(f"      {var}: {', '.join(operators)}")
-
-            # 読み込み数の表示
-            if read_counts:
-                func_total_reads = sum(read_counts.values())
-                print(f"    - 変数読み込み総数: {func_total_reads}回")
-                for var in sorted(read_counts.keys()):
-                    count = read_counts[var]
-                    print(f"      {var}: {count}回")
-                file_reads += func_total_reads
-
-            # 書き込み数の表示
-            if write_counts:
-                func_total_writes = sum(write_counts.values())
-                print(f"    - 変数書き込み総数: {func_total_writes}回")
-                for var in sorted(write_counts.keys()):
-                    count = write_counts[var]
-                    print(f"      {var}: {count}回")
-                file_writes += func_total_writes
-
-            file_user_vars += user_count
-            file_builtin_vars += builtin_count
+            total_user_vars += user_count
+            total_variable_reads += sum(read_counts.values())
+            total_variable_writes += sum(write_counts.values())
             total_functions += 1
 
-        print(f"  ファイル合計: 独自定義{file_user_vars}個, 組み込み{file_builtin_vars}個, 読み込み{file_reads}回, 書き込み{file_writes}回")
-        total_user_vars += file_user_vars
-        total_builtin_vars += file_builtin_vars
-        total_variable_reads += file_reads
-        total_variable_writes += file_writes
+    # トップレベル結果を加算
+    if top_level_results:
+        for file_name, result in top_level_results.items():
+            total_user_vars += result.get('variable_count', 0)
+            total_variable_reads += result.get('total_reads', 0)
+            total_variable_writes += result.get('total_writes', 0)
 
-    print(f"\n 【最終結果】")
     print(f"  総関数数: {total_functions}個")
-    print(f"  独自定義変数の総種類数: {total_user_vars}個")
-    print(f"  組み込み変数の総種類数: {total_builtin_vars}個")
-    print(f"  独自定義変数の総読み込み数: {total_variable_reads}回")
-    print(f"  独自定義変数の総書き込み数: {total_variable_writes}回")
+    print(f"  変数種類数: {total_user_vars}個")
+    print(f"  総読み込み数: {total_variable_reads}回")
+    print(f"  総書き込み数: {total_variable_writes}回")
 
 
 if __name__ == "__main__":
     main()
+
+# 他のモジュールからのインポート例:
+#
+# from ext_feature_data_flow import extract_dataflow_features_as_list, get_dataflow_feature_vector
+#
+# # 基本的な使用方法（5つの特徴量）
+# features = extract_dataflow_features_as_list("sample.py")
+# print(features)  # [総読み込み数, 総書き込み数, 読み込み数最大値, 書き込み数最大値, 変数種類数]
+#
+# # クラスタリング用ベクトル
+# feature_vector = get_dataflow_feature_vector("sample.py")
+# print(feature_vector)  # [総読み込み数, 総書き込み数, 読み込み数最大値, 書き込み数最大値, 変数種類数]
+#
+# # 詳細分析結果（内部用）
+# all_results, top_level_results = analyze_dataflow_features("sample.py")
+# print(all_results)  # 詳細な解析結果
