@@ -1014,4 +1014,5 @@ if __name__ == "__main__":
     # analyze_and_visualize_file("try_except.py")
     # analyze_and_visualize_file("try_except_fixed.py")
     # analyze_and_visualize_file("try_except.java")
-    analyze_and_visualize_file("whiletest.py")
+    # analyze_and_visualize_file("whiletest.py")
+    analyze_and_visualize_file("while.py")

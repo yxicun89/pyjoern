@@ -1,7 +1,93 @@
 # これが現状の最も正確なCFG解析コード
+# - 関数単位でのループ・条件文検出（detect_function_saikiok.py使用）
+# - ループ考慮パス検出（path_dfs.py使用、2回まで訪問）
+# - 再帰検出をloop_statementsに統合
+# 関数単位でできた、パス数できた、あとは関数追跡出来たら完璧
 
 from pyjoern import parse_source, fast_cfgs_from_source
 import networkx as nx
+import os
+import sys
+
+# detect_function_saikiok.pyから関数をインポート
+try:
+    from detect_function_saikiok import (
+        delete_comments,
+        extract_functions_and_others,
+        count_statements,
+        get_all_function_stats,
+        get_file_totals
+    )
+except ImportError:
+    print("detect_function_saikiok.pyが見つかりません。同じディレクトリに配置してください。")
+    sys.exit(1)
+
+# path_dfs.pyから関数をインポート
+try:
+    from path_dfs import (
+        find_entry_exit_nodes,
+        collect_all_paths
+    )
+except ImportError:
+    print("path_dfs.pyが見つかりません。同じディレクトリに配置してください。")
+    sys.exit(1)
+
+def extract_function_level_features(source_code, cfg_name):
+    """関数単位でのループ・条件文検出"""
+    if not source_code:
+        return {'loop_statements': 0, 'conditional_statements': 0}
+
+    # コメントを除去
+    filtered_code = delete_comments(source_code)
+
+    # 関数とその他のコードを分離
+    functions, other_code = extract_functions_and_others(filtered_code)
+
+    # 特定の関数名に対応する統計を取得
+    for func_name, func_body in functions:
+        # 関数名マッチング（"def example(" → "example"）
+        if func_name.startswith("def "):
+            clean_func_name = func_name.split('(')[0].replace('def ', '').strip()
+            if clean_func_name == cfg_name:
+                if_count, for_count, while_count, match_count = count_statements(func_body)
+
+                # ループ文：for + while
+                loop_statements = for_count + while_count
+
+                # 条件文：if/elif + while + for + match
+                conditional_statements = if_count + while_count + for_count + match_count
+
+                return {
+                    'loop_statements': loop_statements,
+                    'conditional_statements': conditional_statements,
+                    'detail': {
+                        'if_count': if_count,
+                        'for_count': for_count,
+                        'while_count': while_count,
+                        'match_count': match_count
+                    }
+                }
+
+    # 関数が見つからない場合（モジュールレベルなど）
+    if cfg_name == '<module>' or cfg_name == '&lt;module&gt;':
+        # モジュールレベルのコード（関数以外）から検出
+        if_count, for_count, while_count, match_count = count_statements(other_code)
+        loop_statements = for_count + while_count
+        conditional_statements = if_count + while_count + for_count + match_count
+
+        return {
+            'loop_statements': loop_statements,
+            'conditional_statements': conditional_statements,
+            'detail': {
+                'if_count': if_count,
+                'for_count': for_count,
+                'while_count': while_count,
+                'match_count': match_count
+            }
+        }
+
+    # 該当する関数が見つからない場合
+    return {'loop_statements': 0, 'conditional_statements': 0}
 
 def detect_language(source_code, filename):
     """ソースコードと拡張子から言語を判定"""
@@ -26,132 +112,12 @@ def detect_language(source_code, filename):
         else:
             return 'unknown'
 
-def remove_comments(source_code, language):
-    """言語別にコメントを除去"""
-    import re
-
-    lines = source_code.split('\n')
-    clean_lines = []
-
-    if language == 'python':
-        # Python: # で始まる行コメント、'''や"""の複数行コメント
-        in_multiline_single = False
-        in_multiline_double = False
-
-        for line in lines:
-            clean_line = line
-
-            # 複数行コメント処理
-            if '"""' in line:
-                if not in_multiline_double:
-                    # 開始
-                    parts = line.split('"""')
-                    clean_line = parts[0]
-                    in_multiline_double = True
-                    if len(parts) > 2:  # 同じ行で終了
-                        clean_line = parts[0] + ''.join(parts[2:])
-                        in_multiline_double = False
-                else:
-                    # 終了
-                    parts = line.split('"""', 1)
-                    if len(parts) > 1:
-                        clean_line = parts[1]
-                        in_multiline_double = False
-                    else:
-                        clean_line = ""
-            elif "'''" in line:
-                if not in_multiline_single:
-                    parts = line.split("'''")
-                    clean_line = parts[0]
-                    in_multiline_single = True
-                    if len(parts) > 2:
-                        clean_line = parts[0] + ''.join(parts[2:])
-                        in_multiline_single = False
-                else:
-                    parts = line.split("'''", 1)
-                    if len(parts) > 1:
-                        clean_line = parts[1]
-                        in_multiline_single = False
-                    else:
-                        clean_line = ""
-
-            # 複数行コメント中はスキップ
-            if in_multiline_single or in_multiline_double:
-                continue
-
-            # 行コメント除去 (#)
-            if '#' in clean_line:
-                # 文字列リテラル内の#は除外
-                in_string = False
-                quote_char = None
-                for i, char in enumerate(clean_line):
-                    if char in ['"', "'"] and (i == 0 or clean_line[i-1] != '\\'):
-                        if not in_string:
-                            in_string = True
-                            quote_char = char
-                        elif char == quote_char:
-                            in_string = False
-                    elif char == '#' and not in_string:
-                        clean_line = clean_line[:i]
-                        break
-
-            clean_lines.append(clean_line)
-
-    elif language in ['c_cpp', 'java', 'javascript']:
-        # C/C++/Java/JS: // 行コメント、/* */ ブロックコメント
-        in_block_comment = False
-
-        for line in lines:
-            clean_line = line
-
-            # ブロックコメント処理
-            while '/*' in clean_line or '*/' in clean_line or in_block_comment:
-                if in_block_comment:
-                    if '*/' in clean_line:
-                        end_pos = clean_line.find('*/')
-                        clean_line = clean_line[end_pos + 2:]
-                        in_block_comment = False
-                    else:
-                        clean_line = ""
-                        break
-                else:
-                    if '/*' in clean_line:
-                        start_pos = clean_line.find('/*')
-                        if '*/' in clean_line[start_pos:]:
-                            end_pos = clean_line.find('*/', start_pos)
-                            clean_line = clean_line[:start_pos] + clean_line[end_pos + 2:]
-                        else:
-                            clean_line = clean_line[:start_pos]
-                            in_block_comment = True
-                            break
-                    else:
-                        break
-
-            # 行コメント除去 (//)
-            if '//' in clean_line:
-                # 文字列リテラル内の//は除外
-                in_string = False
-                quote_char = None
-                for i, char in enumerate(clean_line):
-                    if char in ['"', "'"] and (i == 0 or clean_line[i-1] != '\\'):
-                        if not in_string:
-                            in_string = True
-                            quote_char = char
-                        elif char == quote_char:
-                            in_string = False
-                    elif char == '/' and i < len(clean_line) - 1 and clean_line[i+1] == '/' and not in_string:
-                        clean_line = clean_line[:i]
-                        break
-
-            clean_lines.append(clean_line)
-    else:
-        # 不明な言語はそのまま
-        clean_lines = lines
-
-    return '\n'.join(clean_lines)
+def simple_remove_comments(source_code, language):
+    """簡略化されたコメント除去（detect_function_saikiok.pyのdelete_commentsを使用）"""
+    return '\n'.join(delete_comments(source_code))
 
 def extract_accurate_features(cfg, cfg_name, source_code=None, filename=None):
-    """CFG構造分析に基づいた最適化された特徴量抽出"""
+    """CFG構造分析に基づいた最適化された特徴量抽出（関数単位検出使用）"""
     features = {}
 
     # 1. Connected Components
@@ -161,24 +127,20 @@ def extract_accurate_features(cfg, cfg_name, source_code=None, filename=None):
     except Exception:
         features['connected_components'] = 0
 
-    # 2. ループ文検出（ソースコード検索 + CFG再帰検出）
-    loop_count = 0
-
-    # 言語判定
-    language = detect_language(source_code, filename) if source_code and filename else 'unknown'
-
-    # 方法1: ソースコードからfor/while文字列検索
-    source_loops = 0
+    # 2. ループ文と条件文検出（関数単位の正確な検出）
     if source_code:
-        clean_source = remove_comments(source_code, language)
-        while_count = clean_source.count('while ')
-        for_count = clean_source.count('for ')
-        do_count = 0
-        if language in ['c_cpp', 'java']:
-            do_count = clean_source.count('do ')
-        source_loops = while_count + for_count + do_count
+        function_features = extract_function_level_features(source_code, cfg_name)
+        base_loop_statements = function_features.get('loop_statements', 0)
+        features['conditional_statements'] = function_features.get('conditional_statements', 0)
 
-    # 方法2: CFGから再帰検出
+        # 詳細情報も保存
+        if 'detail' in function_features:
+            features['detail'] = function_features['detail']
+    else:
+        base_loop_statements = 0
+        features['conditional_statements'] = 0
+
+    # 3. 再帰検出（CFGから）
     recursive_loops = 0
     for node in cfg.nodes():
         if hasattr(node, 'statements') and node.statements:
@@ -188,55 +150,32 @@ def extract_accurate_features(cfg, cfg_name, source_code=None, filename=None):
                     stmt.func == cfg_name):
                     recursive_loops += 1
 
-    loop_count = source_loops + recursive_loops
-    features['loop_statements'] = loop_count
-    features['recursive_loops'] = recursive_loops  # 再帰数を別途保存
+    # ループ文に再帰も含める
+    features['loop_statements'] = base_loop_statements + recursive_loops
+    features['recursive_loops'] = recursive_loops  # デバッグ用（表示は控える）
 
-    # 3. 条件文検出（言語別ソースコード検索）
-    conditional_count = 0
-
-    if source_code:
-        clean_source = remove_comments(source_code, language)
-        elif_count = 0
-        match_count = 0
-        switch_count = 0
-
-        if language == 'python':
-            elif_count = clean_source.count('elif ')
-            match_count = clean_source.count('match ')
-        elif language in ['c_cpp', 'java', 'javascript']:
-            switch_count = clean_source.count('switch ')
-
-        if_count = clean_source.count('if ') - elif_count
-        while_count = clean_source.count('while ')
-        for_count = clean_source.count('for ')
-
-        conditional_count = if_count + elif_count + while_count + match_count + switch_count + for_count
-
-    features['conditional_statements'] = conditional_count    # 4. Cycles
+    # 4. Cycles
     try:
         cycles = list(nx.simple_cycles(cfg))
         features['cycles'] = len(cycles)
     except Exception:
         features['cycles'] = 0
 
-    # 5. Paths
+    # 5. Paths（ループ考慮版 - path_dfs.pyから）
     try:
-        entry_nodes = [n for n in cfg.nodes() if len(list(cfg.predecessors(n))) == 0]
-        exit_nodes = [n for n in cfg.nodes() if len(list(cfg.successors(n))) == 0]
+        entry_nodes, exit_nodes = find_entry_exit_nodes(cfg)
 
         total_paths = 0
         if entry_nodes and exit_nodes:
             for entry in entry_nodes:
                 for exit_node in exit_nodes:
-                    try:
-                        paths = list(nx.all_simple_paths(cfg, entry, exit_node, cutoff=20))
-                        total_paths += len(paths)
-                    except nx.NetworkXNoPath:
-                        continue
+                    # path_dfs.pyのループ考慮パス検出を使用（2回まで訪問）
+                    paths = collect_all_paths(cfg, entry, exit_node, max_visits=2)
+                    total_paths += len(paths)
 
         features['paths'] = total_paths
-    except Exception:
+    except Exception as e:
+        print(f"パス計算エラー: {e}")
         features['paths'] = 0
 
     # 6. Cyclomatic Complexity
@@ -280,9 +219,9 @@ def analyze_function_metadata(func_obj):
     return metadata
 
 def display_accurate_summary(all_features, source_code="", source_file=""):
-    """正確な特徴量結果を表示（簡潔版）"""
+    """正確な特徴量結果を表示（関数単位検出版）"""
     print(f"\n{'='*80}")
-    print(f"CFG特徴量結果")
+    print(f"CFG特徴量結果（関数単位検出）")
     print(f"{'='*80}")
 
     # 全体集計（クラスタリング用メトリクス）
@@ -304,33 +243,13 @@ def display_accurate_summary(all_features, source_code="", source_file=""):
         all_connected_components = [features.get('connected_components', 0) for features in all_features.values()]
         total_connected = 1 if all(cc > 0 for cc in all_connected_components) else 0
 
-        # ループと条件文: ファイル全体で1回検索（重複除去）
-        if source_code:
-            language = detect_language(source_code, source_file) if source_file else 'unknown'
-            clean_source = remove_comments(source_code, language)
+        # ループと条件文: 関数単位で既に正確に計算済み（再帰含む）
+        total_loops = sum(features.get('loop_statements', 0) for features in function_features.values())
+        total_conditions = sum(features.get('conditional_statements', 0) for features in function_features.values())
 
-            # ファイル全体のループ数
-            file_while_count = clean_source.count('while ')
-            file_for_count = clean_source.count('for ')
-            file_do_count = clean_source.count('do ') if language in ['c_cpp', 'java'] else 0
-            file_source_loops = file_while_count + file_for_count + file_do_count
-
-            # ファイル全体の条件文数
-            elif_count = clean_source.count('elif ') if language == 'python' else 0
-            match_count = clean_source.count('match ') if language == 'python' else 0
-            switch_count = clean_source.count('switch ') if language in ['c_cpp', 'java', 'javascript'] else 0
-            if_count = clean_source.count('if ') - elif_count
-            file_conditions = if_count + elif_count + file_while_count + match_count + switch_count + file_for_count
-
-            # 再帰検出は関数レベルで実施
-            total_recursive = sum(features.get('recursive_loops', 0) for features in function_features.values() if 'recursive_loops' in features)
-
-            # 正確な合計
-            accurate_loops = file_source_loops + total_recursive
-            accurate_conditions = file_conditions
-        else:
-            accurate_loops = 0
-            accurate_conditions = 0
+        # モジュールレベルの分も追加
+        total_loops += sum(features.get('loop_statements', 0) for features in module_features.values())
+        total_conditions += sum(features.get('conditional_statements', 0) for features in module_features.values())
 
         # 構造的特徴: 全体から計算（関数+モジュール）
         total_cycles = sum(features.get('cycles', 0) for features in all_features.values())
@@ -338,25 +257,31 @@ def display_accurate_summary(all_features, source_code="", source_file=""):
         total_complexity = sum(features.get('cyclomatic_complexity', 0) for features in all_features.values())
 
         print(f"  total_connected_components: {total_connected}")
-        print(f"  accurate_loop_statements: {accurate_loops} (ファイル全体検索 + 関数別再帰)")
-        print(f"  accurate_conditional_statements: {accurate_conditions} (ファイル全体検索)")
+        print(f"  function_level_loop_statements: {total_loops} (関数単位正確検出、再帰含む)")
+        print(f"  function_level_conditional_statements: {total_conditions} (関数単位正確検出)")
         print(f"  total_cycles: {total_cycles}")
-        print(f"  total_paths: {total_paths}")
+        print(f"  total_paths: {total_paths} (ループ考慮版、2回まで訪問)")
         print(f"  total_cyclomatic_complexity: {total_complexity}")
 
-        # クラスタリング用ベクトル表示（正確な値使用）
-        clustering_vector = [total_connected, accurate_loops, accurate_conditions, total_cycles, total_paths, total_complexity]
+        # クラスタリング用ベクトル表示（関数単位検出版）
+        clustering_vector = [total_connected, total_loops, total_conditions, total_cycles, total_paths, total_complexity]
         print(f"  📊 クラスタリング用ベクトル: {clustering_vector}")
 
     print(f"\n個別CFG詳細:")
     for cfg_name, features in all_features.items():
         print(f"\n{cfg_name}:")
         print(f"  connected_components: {features.get('connected_components', 0)}")
-        print(f"  loop_statements: {features.get('loop_statements', 0)}")
+        print(f"  loop_statements: {features.get('loop_statements', 0)} (再帰含む)")
         print(f"  conditional_statements: {features.get('conditional_statements', 0)}")
         print(f"  cycles: {features.get('cycles', 0)}")
-        print(f"  paths: {features.get('paths', 0)}")
+        print(f"  paths: {features.get('paths', 0)} (ループ考慮)")
         print(f"  cyclomatic_complexity: {features.get('cyclomatic_complexity', 0)}")
+
+        # 詳細情報があれば表示
+        if 'detail' in features:
+            detail = features['detail']
+            recursive_count = features.get('recursive_loops', 0)
+            print(f"  詳細: if={detail.get('if_count', 0)}, for={detail.get('for_count', 0)}, while={detail.get('while_count', 0)}, match={detail.get('match_count', 0)}, recursive={recursive_count}")
 
 def analyze_accurate_cfg(source_file):
     """CFG解析"""
@@ -402,7 +327,7 @@ def analyze_accurate_cfg(source_file):
     return all_features
 
 def main():
-    test_files = ["noi.py"]
+    test_files = ["whiletest.py"]
 
     for test_file in test_files:
         try:
