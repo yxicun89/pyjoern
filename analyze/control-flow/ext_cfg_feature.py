@@ -1,5 +1,5 @@
 # これが現状の最も正確なCFG解析コード
-# - 関数単位でのループ・条件文検出（detect_function_saikiok.py使用）
+# - 関数単位でのループ・条件文検出（detect_function.py使用）
 # - ループ考慮パス検出（path_dfs.py使用、2回まで訪問）
 # - 再帰検出をloop_statementsに統合
 # 関数単位でできた、パス数できた、あとは関数追跡出来たら完璧
@@ -9,9 +9,9 @@ import networkx as nx
 import os
 import sys
 
-# detect_function_saikiok.pyから関数をインポート
+# detect_function.pyから関数をインポート
 try:
-    from detect_function_saikiok import (
+    from detect_function import (
         delete_comments,
         extract_functions_and_others,
         count_statements,
@@ -19,7 +19,7 @@ try:
         get_file_totals
     )
 except ImportError:
-    print("detect_function_saikiok.pyが見つかりません。同じディレクトリに配置してください。")
+    print("detect_function.pyが見つかりません。同じディレクトリに配置してください。")
     sys.exit(1)
 
 # path_dfs.pyから関数をインポート
@@ -113,7 +113,7 @@ def detect_language(source_code, filename):
             return 'unknown'
 
 def simple_remove_comments(source_code, language):
-    """簡略化されたコメント除去（detect_function_saikiok.pyのdelete_commentsを使用）"""
+    """簡略化されたコメント除去（detect_function.pyのdelete_commentsを使用）"""
     return '\n'.join(delete_comments(source_code))
 
 def extract_accurate_features(cfg, cfg_name, source_code=None, filename=None):
@@ -220,13 +220,13 @@ def analyze_function_metadata(func_obj):
 
 def display_accurate_summary(all_features, source_code="", source_file=""):
     """正確な特徴量結果を表示（関数単位検出版）"""
-    print(f"\n{'='*80}")
-    print(f"CFG特徴量結果（関数単位検出）")
-    print(f"{'='*80}")
+    # print(f"\n{'='*80}")
+    # print(f"CFG特徴量結果（関数単位検出）")
+    # print(f"{'='*80}")
 
     # 全体集計（クラスタリング用メトリクス）
     if all_features:
-        print(f"\n🎯 全体集計 (クラスタリング用):")
+        # print(f"\n🎯 全体集計 (クラスタリング用):")
 
         # 重複除去: 関数レベルの特徴量のみ使用（モジュールレベルは除外）
         function_features = {k: v for k, v in all_features.items()
@@ -236,8 +236,8 @@ def display_accurate_summary(all_features, source_code="", source_file=""):
         module_features = {k: v for k, v in all_features.items()
                          if k.startswith('<module>') or k.startswith('&lt;module&gt;')}
 
-        print(f"  📊 関数レベル特徴量: {len(function_features)}個")
-        print(f"  📊 モジュールレベル特徴量: {len(module_features)}個")
+        # print(f"  📊 関数レベル特徴量: {len(function_features)}個")
+        # print(f"  📊 モジュールレベル特徴量: {len(module_features)}個")
 
         # connected_components: 論理積（1つでも0があれば0、全て1以上なら1）
         all_connected_components = [features.get('connected_components', 0) for features in all_features.values()]
@@ -256,32 +256,32 @@ def display_accurate_summary(all_features, source_code="", source_file=""):
         total_paths = sum(features.get('paths', 0) for features in all_features.values())
         total_complexity = sum(features.get('cyclomatic_complexity', 0) for features in all_features.values())
 
-        print(f"  total_connected_components: {total_connected}")
-        print(f"  function_level_loop_statements: {total_loops} (関数単位正確検出、再帰含む)")
-        print(f"  function_level_conditional_statements: {total_conditions} (関数単位正確検出)")
-        print(f"  total_cycles: {total_cycles}")
-        print(f"  total_paths: {total_paths} (ループ考慮版、2回まで訪問)")
-        print(f"  total_cyclomatic_complexity: {total_complexity}")
+        # print(f"  total_connected_components: {total_connected}")
+        # print(f"  function_level_loop_statements: {total_loops} (関数単位正確検出、再帰含む)")
+        # print(f"  function_level_conditional_statements: {total_conditions} (関数単位正確検出)")
+        # print(f"  total_cycles: {total_cycles}")
+        # print(f"  total_paths: {total_paths} (ループ考慮版、2回まで訪問)")
+        # print(f"  total_cyclomatic_complexity: {total_complexity}")
 
         # クラスタリング用ベクトル表示（関数単位検出版）
-        clustering_vector = [total_connected, total_loops, total_conditions, total_cycles, total_paths, total_complexity]
-        print(f"  📊 クラスタリング用ベクトル: {clustering_vector}")
+        # clustering_vector = [total_connected, total_loops, total_conditions, total_cycles, total_paths, total_complexity]
+        # print(f"  📊 クラスタリング用ベクトル: {clustering_vector}")
 
-    print(f"\n個別CFG詳細:")
-    for cfg_name, features in all_features.items():
-        print(f"\n{cfg_name}:")
-        print(f"  connected_components: {features.get('connected_components', 0)}")
-        print(f"  loop_statements: {features.get('loop_statements', 0)} (再帰含む)")
-        print(f"  conditional_statements: {features.get('conditional_statements', 0)}")
-        print(f"  cycles: {features.get('cycles', 0)}")
-        print(f"  paths: {features.get('paths', 0)} (ループ考慮)")
-        print(f"  cyclomatic_complexity: {features.get('cyclomatic_complexity', 0)}")
+    # print(f"\n個別CFG詳細:")
+    # for cfg_name, features in all_features.items():
+    #     print(f"\n{cfg_name}:")
+    #     print(f"  connected_components: {features.get('connected_components', 0)}")
+    #     print(f"  loop_statements: {features.get('loop_statements', 0)} (再帰含む)")
+    #     print(f"  conditional_statements: {features.get('conditional_statements', 0)}")
+    #     print(f"  cycles: {features.get('cycles', 0)}")
+    #     print(f"  paths: {features.get('paths', 0)} (ループ考慮)")
+    #     print(f"  cyclomatic_complexity: {features.get('cyclomatic_complexity', 0)}")
 
         # 詳細情報があれば表示
-        if 'detail' in features:
-            detail = features['detail']
-            recursive_count = features.get('recursive_loops', 0)
-            print(f"  詳細: if={detail.get('if_count', 0)}, for={detail.get('for_count', 0)}, while={detail.get('while_count', 0)}, match={detail.get('match_count', 0)}, recursive={recursive_count}")
+        # if 'detail' in features:
+        #     detail = features['detail']
+        #     recursive_count = features.get('recursive_loops', 0)
+            # print(f"  詳細: if={detail.get('if_count', 0)}, for={detail.get('for_count', 0)}, while={detail.get('while_count', 0)}, match={detail.get('match_count', 0)}, recursive={recursive_count}")
 
 def analyze_accurate_cfg(source_file):
     """CFG解析"""

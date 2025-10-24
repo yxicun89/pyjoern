@@ -731,12 +731,12 @@ def extract_dataflow_features_as_list(file_path):
     他のモジュールからインポートしやすい形式
 
     Returns:
-        list: [total_reads, total_writes, max_reads, max_writes, var_count]
+        list: [var_count, total_reads, total_writes, max_reads, max_writes]
+              - var_count: 変数の種類数（関数+トップレベル
               - total_reads: 総読み込み数（関数+トップレベル）
               - total_writes: 総書き込み数（関数+トップレベル）
               - max_reads: 読み込み数の最大値（全変数の中で）
               - max_writes: 書き込み数の最大値（全変数の中で）
-              - var_count: 変数の種類数（関数+トップレベル）
     """
     try:
         # 解析を実行
@@ -796,11 +796,11 @@ def extract_dataflow_features_as_list(file_path):
 
         # 5つの特徴量をリスト形式で返す
         return [
+            total_var_count,  # 変数種類数
             total_reads,     # 総読み込み数
             total_writes,    # 総書き込み数
             max_reads,       # 読み込み数最大値
-            max_writes,      # 書き込み数最大値
-            total_var_count  # 変数種類数
+            max_writes      # 書き込み数最大値
         ]
 
     except Exception as e:
