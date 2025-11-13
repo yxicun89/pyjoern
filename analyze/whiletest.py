@@ -17,7 +17,7 @@ def example(x):
 if __name__ == "__main__":
   example(5)
 
-  
+
 # def comprehensive_analysis(data_list, target):
 #     """包括的な基本構文を使った関数"""
 

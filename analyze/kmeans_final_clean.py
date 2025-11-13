@@ -18,8 +18,6 @@ try:
     ADVANCED_VIZ_AVAILABLE = True
 except ImportError:
     ADVANCED_VIZ_AVAILABLE = False
-    print("⚠️ seaborn/pandasが利用できません。基本的な可視化のみ実行します。")
-    print("   高度な可視化には: pip install seaborn pandas を実行してください。")
 
 # JSONファイル操作のインポート
 import json
@@ -30,14 +28,12 @@ try:
     TSNE_AVAILABLE = True
 except ImportError:
     TSNE_AVAILABLE = False
-    print("⚠️ t-SNEが利用できません。scikit-learnのバージョンを確認してください。")
 
 try:
     import umap
     UMAP_AVAILABLE = True
 except ImportError:
     UMAP_AVAILABLE = False
-    print("⚠️ UMAPが利用できません。インストールには: pip install umap-learn を実行してください。")
 
 # ext_cfg_dfg_feature.pyから特徴量抽出関数をインポート
 try:
@@ -52,8 +48,6 @@ try:
     )
     FEATURE_EXTRACTION_AVAILABLE = True
 except ImportError as e:
-    print(f"❌ 特徴量抽出モジュールのインポートエラー: {e}")
-    print("ext_cfg_dfg_feature.pyが同じディレクトリにあることを確認してください。")
     FEATURE_EXTRACTION_AVAILABLE = False
 
 # --- 特徴量の重みを定義 ---
@@ -239,24 +233,91 @@ def load_true_centroids_from_cache(cache_file):
                     pattern_labels.append(pattern_name)
 
                 true_centers = np.array(pattern_centroids)
-
-                print(f"✅ 真のセントロイドを読み込みました:")
-                print(f"   パターン数: {len(pattern_labels)}")
-                print(f"   特徴量次元: {true_centers.shape[1]}")
-                for i, label in enumerate(pattern_labels):
-                    print(f"   {label}: {np.round(true_centers[i][:3], 3)}...")
-
                 return true_centers, pattern_labels
             else:
-                print("⚠️ キャッシュファイルにセントロイド情報がありません")
                 return None, None
         else:
-            print("⚠️ キャッシュファイルにパターンセントロイド情報がありません")
             return None, None
 
     except Exception as e:
-        print(f"❌ 真のセントロイド読み込みエラー: {e}")
         return None, None
+
+# --- パターン情報を動的に検出する関数 ---
+def extract_pattern_from_filepath(filepath):
+    """
+    ファイルパスからパターン情報を動的に抽出
+
+    Args:
+        filepath: ファイルパス
+
+    Returns:
+        str: パターン名 (例: "pattern4", "pattern5", "AC", "TLE", "other")
+    """
+    import re
+
+    # パスを正規化（バックスラッシュをスラッシュに変換）
+    normalized_path = filepath.replace('\\', '/')
+
+    # ファイル名も確認
+    filename = os.path.basename(filepath)
+
+    # パターンを検出する正規表現のリスト（優先順位順）
+    pattern_regexes = [
+        # pattern + 数字（ファイル名またはパス内）
+        (r'pattern(\d+)', lambda m: f"pattern{m.group(1)}"),
+        # AC, TLE などの結果パターン（明確なアンダースコア区切り）
+        (r'_([A-Z]{2,3})(?:_|$|/|\.)', lambda m: m.group(1)),
+        # ディレクトリ名が結果を表す場合
+        (r'/([A-Z]{2,3})/', lambda m: m.group(1)),
+        # ファイル名の数字部分をパターンとして利用（submission_数字.py）
+        (r'submission_(\d+)\.py', lambda m: f"sub{m.group(1)}"),
+        # submissions_typical90_xx パターン
+        (r'submissions_typical90_([a-z]+)', lambda m: f"typical90_{m.group(1)}"),
+        # その他のsubmissions_パターン
+        (r'submissions_([^/]+?)(?:_\d+)?/', lambda m: m.group(1) if not m.group(1).startswith('submission') else None),
+    ]
+
+    # ファイル全体のパスで検索
+    for pattern_regex, extract_func in pattern_regexes:
+        match = re.search(pattern_regex, normalized_path)
+        if match:
+            result = extract_func(match)
+            if result:
+                # 一般的でない形式や短すぎるパターンを除外
+                if len(result) >= 2 and not result.isdigit():
+                    return result
+
+    # ファイル名からパターンを抽出する最後の試行
+    filename_patterns = [
+        (r'^([a-z]+\d*)_', lambda m: m.group(1)),  # prefix_xxx形式
+        (r'_([a-z]+\d*)\.', lambda m: m.group(1)), # xxx_suffix.ext形式
+        (r'(\d+)', lambda m: f"num{m.group(1)}"),  # 数字のみの場合
+    ]
+
+    for pattern_regex, extract_func in filename_patterns:
+        match = re.search(pattern_regex, filename.lower())
+        if match:
+            result = extract_func(match)
+            if result and len(result) >= 2:
+                return result
+
+    return "other"
+
+def get_all_patterns_from_paths(file_paths):
+    """
+    ファイルパスのリストから全ての利用可能なパターンを取得
+
+    Args:
+        file_paths: ファイルパスのリスト
+
+    Returns:
+        set: 検出されたパターンの集合
+    """
+    patterns = set()
+    for filepath in file_paths:
+        pattern = extract_pattern_from_filepath(filepath)
+        patterns.add(pattern)
+    return patterns
 
 # --- クラスタリング結果を保存 ---
 def save_clustering_results(final_labels, C_final, true_centers, file_names, file_paths,
@@ -321,18 +382,9 @@ def save_clustering_results(final_labels, C_final, true_centers, file_names, fil
                     if feature_vectors is not None:
                         file_info["feature_vector"] = feature_vectors[idx].tolist()
 
-                    # パターン情報を抽出
+                    # パターン情報を動的に抽出
                     filepath = file_paths[idx]
-                    if 'pattern1' in filepath:
-                        file_info["pattern"] = "pattern1"
-                    elif 'pattern2' in filepath:
-                        file_info["pattern"] = "pattern2"
-                    elif 'pattern3' in filepath:
-                        file_info["pattern"] = "pattern3"
-                    elif 'pattern4' in filepath:
-                        file_info["pattern"] = "pattern4"
-                    else:
-                        file_info["pattern"] = "other"
+                    file_info["pattern"] = extract_pattern_from_filepath(filepath)
 
                     cluster_files.append(file_info)
 
@@ -378,25 +430,60 @@ def save_clustering_results(final_labels, C_final, true_centers, file_names, fil
         print(f"❌ クラスタリング結果保存エラー: {e}")
         return None
 
-        C = new_C
+    #     C = new_C
 
-    # 最終的なラベル付け
-    final_labels = np.zeros(len(X_data), dtype=int)
-    for i, S in enumerate(X_data):
-        dists = [dist(c, S, metric, weights=weights) for c in C]
-        final_labels[i] = np.argmin(dists)
+    # # 最終的なラベル付け
+    # final_labels = np.zeros(len(X_data), dtype=int)
+    # for i, S in enumerate(X_data):
+    #     dists = [dist(c, S, metric, weights=weights) for c in C]
+    #     final_labels[i] = np.argmin(dists)
 
-    return C, final_labels
+    # return C, final_labels
 
 # --- データセット作成関数 ---
-def create_dataset(dataset_name: str, n_samples: int = 300):
+def create_dataset(dataset_name: str, n_samples: int = 300, target_directory: str = None, k_clusters: int = None):
     if dataset_name == 'real_code_features':
         # 実際のコードファイルから特徴量を抽出（キャッシュ対応）
         if not FEATURE_EXTRACTION_AVAILABLE:
             raise ValueError("特徴量抽出モジュールが利用できません。ext_cfg_dfg_feature.pyのインポートを確認してください。")
 
-        # ディレクトリパスを指定（相対パスまたは絶対パス）
-        target_directory = "../atcoder/submissions_typical90_d_100"
+        # ディレクトリパスを指定（ユーザー入力または対話式入力）
+        if target_directory is None:
+            # 利用可能なディレクトリを自動検出
+            atcoder_base = "../atcoder"
+            if os.path.exists(atcoder_base):
+                available_dirs = []
+                try:
+                    for item in os.listdir(atcoder_base):
+                        item_path = os.path.join(atcoder_base, item)
+                        if os.path.isdir(item_path) and item.startswith("submissions_typical90_"):
+                            available_dirs.append(item)
+
+                    if available_dirs:
+                        available_dirs.sort()
+                        for i, dirname in enumerate(available_dirs, 1):
+                            print(f"  {i}. {dirname}")
+
+                        user_input = input("選択 (数字またはパス): ").strip()
+
+                        # 数字での選択の場合
+                        try:
+                            choice_num = int(user_input)
+                            if 1 <= choice_num <= len(available_dirs):
+                                target_directory = os.path.join(atcoder_base, available_dirs[choice_num - 1])
+                            else:
+                                target_directory = user_input
+                        except ValueError:
+                            target_directory = user_input
+                    else:
+                        target_directory = input("ディレクトリパスを直接入力: ").strip()
+                except Exception:
+                    target_directory = input("ディレクトリパスを直接入力: ").strip()
+            else:
+                target_directory = input("ディレクトリパス: ").strip()
+
+            if not target_directory:
+                target_directory = "../atcoder/submissions_typical90_d_15_AC_TLE"
 
         if not os.path.exists(target_directory):
             raise ValueError(f"指定されたディレクトリが存在しません: {target_directory}")
@@ -410,11 +497,8 @@ def create_dataset(dataset_name: str, n_samples: int = 300):
         if len(code_files) == 0:
             raise ValueError(f"指定されたディレクトリにコードファイルが見つかりません: {target_directory}")
 
-        print(f"🔍 発見されたファイル数: {len(code_files)}")
-        for i, file in enumerate(code_files[:5]):  # 最初の5ファイルを表示
-            print(f"  {i+1}. {os.path.relpath(file, target_directory)}")
-        if len(code_files) > 5:
-            print(f"  ... および {len(code_files) - 5} 個のファイル")
+        # ファイルをグループ分析（セントロイド計算用）
+        groups = analyze_file_groups(code_files, target_directory)
 
         # キャッシュの有効性をチェック
         batch_results = None
@@ -422,28 +506,23 @@ def create_dataset(dataset_name: str, n_samples: int = 300):
 
         if os.path.exists(cache_file):
             if check_cache_validity(target_directory, cache_file):
-                print(f"📦 有効なキャッシュファイルを発見: {cache_file}")
-                print("キャッシュを使用してクラスタリングを実行します。")
                 use_cache = True
             else:
-                print(f"⚠️ キャッシュファイルは古いため、再抽出が必要です")
+                use_cache = False
+        else:
+            use_cache = False
 
         if use_cache:
             # キャッシュから読み込み
-            print(f"📂 キャッシュから特徴量を読み込み中...")
             cached_data = load_feature_vectors(cache_file)
             if cached_data:
                 batch_results = cached_data['data']
-                print(f"✅ キャッシュから {len(batch_results)} ファイルの特徴量を読み込みました")
 
         if batch_results is None:
             # 新規抽出
-            print("📊 特徴量抽出中...")
             batch_results = batch_extract_integrated_features(code_files)
-
             # 結果をキャッシュに保存
-            print(f"💾 特徴量をキャッシュに保存中...")
-            save_feature_vectors(batch_results, cache_file, format='json')
+            save_feature_vectors(batch_results, groups=groups, base_directory=target_directory, output_file=cache_file, format='json')
 
         # 成功した結果のみを使用
         successful_results = [r for r in batch_results if 'error' not in r]
@@ -451,13 +530,30 @@ def create_dataset(dataset_name: str, n_samples: int = 300):
         if len(successful_results) == 0:
             raise ValueError("すべてのファイルで特徴量抽出に失敗しました")
 
-        print(f"✅ 特徴量抽出成功: {len(successful_results)} / {len(code_files)} ファイル")
-
         # 特徴量ベクトルを取得
         X = np.array([r['integrated_vector'] for r in successful_results])
 
-        # クラスター数を自動決定（ファイル数に基づく）
-        k_clusters = 5
+        # クラスター数を指定（ユーザー入力または自動決定）
+        if k_clusters is None:
+            while True:
+                try:
+                    k_input = input(f"クラスター数K (デフォルト: 2, 推奨範囲: 2～{min(10, len(successful_results)//2)}): ").strip()
+                    if not k_input:
+                        k_clusters = 2
+                        break
+
+                    k_clusters = int(k_input)
+                    if k_clusters < 2:
+                        print("❌ クラスター数は2以上である必要があります")
+                        continue
+                    elif k_clusters > len(successful_results):
+                        print(f"❌ クラスター数はデータ数({len(successful_results)})以下である必要があります")
+                        continue
+                    else:
+                        break
+                except ValueError:
+                    print("❌ 有効な整数を入力してください")
+
         n_features = 11
 
         # 実際のデータには真のラベルがないため、仮のラベルを作成
@@ -469,17 +565,37 @@ def create_dataset(dataset_name: str, n_samples: int = 300):
         # ファイルパスを保存（グループ分析用）
         file_paths = [r['source_file'] for r in successful_results]
 
-        print(f"📈 データセット準備完了: {len(X)} サンプル, {n_features} 特徴量, {k_clusters} クラスター")
-
         # 真のセントロイドをキャッシュファイルから読み込み
         true_centers, pattern_labels = load_true_centroids_from_cache(cache_file)
 
-        if true_centers is not None:
-            # パターン数に基づいてクラスター数を調整
-            k_clusters = len(true_centers)
-            print(f"🎯 真のセントロイドに基づいてクラスター数を調整: {k_clusters}")
+        # 外れ値（otherパターン）の処理方針確認
+        other_count = len([fp for fp in file_paths if extract_pattern_from_filepath(fp) == "other"])
 
-        # ファイル名とパス情報を返り値に含める（デバッグ用）
+        if true_centers is not None:
+            # 真のセントロイドから'other'パターンを除外（意味あるパターンのみでクラスタリング）
+            filtered_pattern_labels = []
+            filtered_true_centers = []
+
+            for i, label in enumerate(pattern_labels):
+                if label != "other":  # 'other'以外のパターンのみを使用
+                    filtered_pattern_labels.append(label)
+                    filtered_true_centers.append(true_centers[i])
+
+            if filtered_true_centers:
+                true_centers = np.array(filtered_true_centers)
+                pattern_labels = filtered_pattern_labels
+            else:
+                true_centers = None
+
+            # パターン数に基づいてクラスター数を提案
+            if true_centers is not None:
+                suggested_k = len(true_centers)
+
+                if k_clusters != suggested_k:
+                    adjust_choice = input(f"推奨クラスター数: {suggested_k} (意味あるパターン: {pattern_labels}). 調整しますか？ (y/n): ").strip().lower()
+                    if adjust_choice in ['y', 'yes', '']:
+                        k_clusters = suggested_k
+
         return X, y_true, k_clusters, n_features, true_centers, file_names, file_paths
 
     else:
@@ -508,7 +624,7 @@ def calculate_average_min_centroid_distance(final_centroids, true_centers):
 
 def display_clustering_results(final_labels, C_final, file_names=None, dataset_name="unknown", file_paths=None, feature_vectors=None):
     """
-    クラスタリング結果を詳細表示
+    クラスタリング結果のサマリー表示（簡潔版）
 
     Args:
         final_labels: クラスターラベル
@@ -518,93 +634,65 @@ def display_clustering_results(final_labels, C_final, file_names=None, dataset_n
         file_paths: ファイルパスリスト
         feature_vectors: 特徴量ベクトル
     """
-    print(f"\n📊 === {dataset_name.upper()} クラスタリング結果詳細 ===")
+    print(f"\n📊 {dataset_name.upper()} クラスタリング結果")
+    print("=" * 80)
 
     unique_labels = np.unique(final_labels)
-    print(f"🔢 総クラスター数: {len(unique_labels)}")
-    print(f"📁 総サンプル数: {len(final_labels)}")
-
-    print(f"\n🎯 各クラスターの詳細:")
-    print("=" * 100)
+    print(f"総クラスター数: {len(unique_labels)} | 総サンプル数: {len(final_labels)}")
 
     for cluster_id in unique_labels:
         cluster_indices = np.where(final_labels == cluster_id)[0]
         cluster_size = len(cluster_indices)
 
-        print(f"\n🏷️  クラスター {cluster_id}:")
-        print(f"   📊 サイズ: {cluster_size} サンプル ({cluster_size/len(final_labels)*100:.1f}%)")
-        print(f"   🎯 セントロイド: {np.round(C_final[cluster_id], 3)}")
+        print(f"\n🏷️ Cluster {cluster_id} ({cluster_size} ファイル):")
 
-        # ファイル詳細情報を表示
-        if file_names and file_paths and feature_vectors is not None:
-            print(f"   📄 含まれるファイルの詳細:")
-            print(f"   {'No':<3} {'ファイル名':<25} {'パス':<50} {'特徴量ベクトル'}")
-            print(f"   {'-'*3} {'-'*25} {'-'*50} {'-'*50}")
-
+        if file_names and file_paths:
+            # ファイル名でソート
             cluster_data = []
             for idx in cluster_indices:
                 cluster_data.append({
-                    'index': idx,
                     'filename': file_names[idx],
-                    'filepath': file_paths[idx] if file_paths else 'N/A',
-                    'vector': feature_vectors[idx] if feature_vectors is not None else 'N/A'
+                    'filepath': file_paths[idx],
+                    'pattern': extract_pattern_from_filepath(file_paths[idx])
                 })
-
-            # ファイル名でソート
             cluster_data.sort(key=lambda x: x['filename'])
 
+            # パターン別統計
+            pattern_counts = {}
+            for data in cluster_data:
+                pattern = data['pattern']
+                pattern_counts[pattern] = pattern_counts.get(pattern, 0) + 1
+
+            # パターン分布を表示（個数とクラスター内%）
+            if pattern_counts:
+                pattern_details = []
+                for pattern, count in sorted(pattern_counts.items()):
+                    pattern_details.append(f"{pattern}: {count}")
+                pattern_info = ", ".join(pattern_details)
+                print(f"   📂 パターン分布: {pattern_info}")
+
+                # パーセンテージ表示を追加
+                percentage_details = []
+                for pattern, count in sorted(pattern_counts.items()):
+                    percentage = (count / cluster_size) * 100
+                    percentage_details.append(f"{pattern}: {percentage:.4f}%")
+                percentage_info = ", ".join(percentage_details)
+                print(f"   📊 パーセンテージ: {percentage_info}")
+
+            # ファイル一覧を表示（全ファイル詳細表示）
+            print(f"   📄 ファイル一覧:")
             for i, data in enumerate(cluster_data, 1):
-                filename = data['filename']
-                filepath = data['filepath']
-                vector = data['vector']
+                pattern_mark = "⚠️" if data['pattern'] == 'other' else ""
+                print(f"       {i:2d}. {data['filename']:<25} ({data['pattern']}){pattern_mark}")
 
-                # ファイルパスからディレクトリ部分を抽出
-                if filepath != 'N/A':
-                    path_parts = filepath.split('/')
-                    if len(path_parts) > 2:
-                        short_path = '/'.join(path_parts[-2:])  # 最後の2階層のみ表示
-                    else:
-                        short_path = filepath
-                else:
-                    short_path = 'N/A'
+    print("=" * 80)
 
-                # ベクトルを短縮表示
-                if isinstance(vector, (list, np.ndarray)):
-                    vector_str = str(vector).replace(' ', '')[1:-1]  # スペース削除、[]削除
-                    if len(vector_str) > 50:
-                        vector_str = vector_str[:47] + "..."
-                else:
-                    vector_str = str(vector)
-
-                print(f"   {i:2d}. {filename:<25} {short_path:<50} [{vector_str}]")
-
-                # 10個以上ある場合は省略表示
-                if i >= 10 and len(cluster_data) > 10:
-                    remaining = len(cluster_data) - 10
-                    print(f"       ... および {remaining} 個のファイル")
-                    break
-
-        elif file_names:
-            print(f"   📄 含まれるファイル:")
-            cluster_files = [file_names[idx] for idx in cluster_indices]
-
-            # ファイル名をソートして表示
-            cluster_files.sort()
-            for i, filename in enumerate(cluster_files, 1):
-                print(f"      {i:2d}. {filename}")
-                if i >= 10 and len(cluster_files) > 10:  # 最初の10ファイルのみ表示
-                    remaining = len(cluster_files) - 10
-                    print(f"      ... および {remaining} 個のファイル")
-                    break
-        else:
-            print(f"   📄 サンプルインデックス: {cluster_indices[:10].tolist()}" +
-                  (f" ... (+{len(cluster_indices)-10})" if len(cluster_indices) > 10 else ""))
-
-    print("=" * 100)
-
-def main(algorithm_type: str, dataset_name: str):
-    # データセットの生成
-    result = create_dataset(dataset_name)
+def main(algorithm_type: str, dataset_name: str, preloaded_data=None, target_directory: str = None, k_clusters: int = None):
+    # データセットの生成または事前ロード済みデータの使用
+    if preloaded_data is None:
+        result = create_dataset(dataset_name, target_directory=target_directory, k_clusters=k_clusters)
+    else:
+        result = preloaded_data
 
     # 返り値の数に応じて適切に分割
     if len(result) == 7:
@@ -634,11 +722,8 @@ def main(algorithm_type: str, dataset_name: str):
         algo_title = "General K-means"
     elif algorithm_type == 'correctness_guided':
         if true_centers is None:
-            print("❌ 正解判定関数を利用したクラスタリングには真のセントロイドが必要です。")
-            print("   キャッシュファイルにパターン別セントロイド情報があることを確認してください。")
-            raise ValueError("真のセントロイドが見つかりません。先にext_cfg_dfg_feature.pyを実行してセントロイドを生成してください。")
+            raise ValueError("正解判定関数を利用したクラスタリングには真のセントロイドが必要です。")
 
-        print(f"🎯 正解判定関数を利用したクラスタリングを実行 (真のセントロイド数: {len(true_centers)})")
         C_final, final_labels = clustering_algorithm_with_correctness(
             X_data=X,
             k=k_clusters,
@@ -654,12 +739,9 @@ def main(algorithm_type: str, dataset_name: str):
     centroid_distance = calculate_average_min_centroid_distance(C_final, true_centers)
 
     # 結果の出力
-    print(f"--- {dataset_name.capitalize()} Dataset Results ({algo_title}, k={k_clusters}) ---")
-    print(f"最終的なセントロイド:\n", np.round(C_final, 2))
+    print(f"\n📊 {dataset_name} - {algo_title} (k={k_clusters})")
     if true_centers is not None and not np.isnan(centroid_distance):
-        print(f"最終セントロイドと真のセントロイド間の平均最小距離: {centroid_distance:.4f}")
-    else:
-        print("真のセントロイドが存在しないため、セントロイド距離は計算されません。")
+        print(f"セントロイド距離: {centroid_distance:.4f}")
     print("-" * 50)
 
     # クラスタリング結果を保存
@@ -700,10 +782,7 @@ def visualize_clustering_results(X, y_true, final_labels, C_final, true_centers,
     reduction_results = {}
 
     if n_features > 2:
-        print(f"\n📊 次元削減手法の比較実行:")
-
         # 1. PCA
-        print("   🔄 PCA実行中...")
         pca = PCA(n_components=2, random_state=42)
         X_pca = pca.fit_transform(X)
         C_pca = pca.transform(C_final)
@@ -719,10 +798,8 @@ def visualize_clustering_results(X, y_true, final_labels, C_final, true_centers,
 
         # 2. t-SNE
         if TSNE_AVAILABLE:
-            print("   🔄 t-SNE実行中...")
             tsne = TSNE(n_components=2, random_state=42, perplexity=min(30, len(X)-1), max_iter=1000)
             X_tsne = tsne.fit_transform(X)
-            # t-SNEは学習したモデルでは変換できないため、セントロイドは別途計算
             C_tsne = np.array([np.mean(X_tsne[final_labels == i], axis=0) for i in range(len(C_final))])
 
             reduction_results['t-SNE'] = {
@@ -731,15 +808,11 @@ def visualize_clustering_results(X, y_true, final_labels, C_final, true_centers,
                 'title_suffix': f" (t-SNE 2D)",
                 'info': f"perplexity: {min(30, len(X)-1)}, max_iter: 1000"
             }
-        else:
-            print("   ⚠️ t-SNEは利用できません")
 
         # 3. UMAP
         if UMAP_AVAILABLE:
-            print("   🔄 UMAP実行中...")
             umap_reducer = umap.UMAP(n_components=2, random_state=42, n_neighbors=min(15, len(X)-1))
             X_umap = umap_reducer.fit_transform(X)
-            # UMAPもセントロイドは別途計算
             C_umap = np.array([np.mean(X_umap[final_labels == i], axis=0) for i in range(len(C_final))])
 
             reduction_results['UMAP'] = {
@@ -748,10 +821,6 @@ def visualize_clustering_results(X, y_true, final_labels, C_final, true_centers,
                 'title_suffix': f" (UMAP 2D)",
                 'info': f"n_neighbors: {min(15, len(X)-1)}"
             }
-        else:
-            print("   ⚠️ UMAPは利用できません")
-
-        print(f"   ✅ 利用可能な次元削減手法: {list(reduction_results.keys())}")
     else:
         # 2次元データの場合
         reduction_results['Original'] = {
@@ -767,31 +836,36 @@ def visualize_clustering_results(X, y_true, final_labels, C_final, true_centers,
     pattern_labels = None
 
     if file_paths is not None and dataset_name == 'real_code_features':
-        # 対象ディレクトリを取得
-        target_directory = "../atcoder/submissions_typical90_d_100"
+        # 動的パターン検出を使用
+        all_patterns = get_all_patterns_from_paths(file_paths)
 
-        # ファイルをパターン別にグループ分け
-        pattern_groups = analyze_file_groups(file_paths, target_directory)
+        # パターン別にグループ化
+        pattern_groups = {}
+        for pattern in all_patterns:
+            pattern_groups[pattern] = []
+
+        for i, filepath in enumerate(file_paths):
+            pattern = extract_pattern_from_filepath(filepath)
+            pattern_groups[pattern].append({
+                'file_path': filepath,
+                'index': i
+            })
 
         # 色の設定
         color_palette = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'pink', 'olive', 'cyan']
         pattern_colors = {}
         color_idx = 0
 
-        for group_name in pattern_groups.keys():
+        # パターン別の色割り当て（'other'も通常の色で表示）
+        for group_name in sorted(pattern_groups.keys()):
             if group_name == 'other':
-                pattern_colors[group_name] = 'gray'
+                pattern_colors[group_name] = 'lightcoral'
             else:
                 pattern_colors[group_name] = color_palette[color_idx % len(color_palette)]
                 color_idx += 1
 
         # 各ファイルのパターンラベルを決定
-        file_to_group = {}
-        for group_name, group_files in pattern_groups.items():
-            for file_info in group_files:
-                file_to_group[file_info['file_path']] = group_name
-
-        pattern_labels = [file_to_group.get(fp, 'other') for fp in file_paths]
+        pattern_labels = [extract_pattern_from_filepath(fp) for fp in file_paths]
 
     # 各次元削減手法ごとに可視化を実行
     for method_name, result in reduction_results.items():
@@ -800,222 +874,214 @@ def visualize_clustering_results(X, y_true, final_labels, C_final, true_centers,
         title_suffix = result['title_suffix']
         method_info = result['info']
 
-        print(f"\n📈 {method_name}可視化実行中... ({method_info})")
-
-        # 図を作成（情報表示スペースも確保）
+        # 図を作成
         plt.figure(figsize=(18, 8))
 
         # 密集度に応じてプロット設定を調整
         n_points = len(X_2d)
-        if n_points > 100:
-            point_size = max(30, 100 - n_points // 10)  # 点数が多いほど小さく
-            alpha_val = max(0.6, 1.0 - n_points / 500)  # 点数が多いほど透明に
-        else:
-            point_size = 60
-            alpha_val = 0.8
+        point_size = max(30, 100 - n_points // 10) if n_points > 100 else 60
+        alpha_val = max(0.6, 1.0 - n_points / 500) if n_points > 100 else 0.8
 
-        # 左側: パターン別色分け（全体表示）
+        # 左側: パターン別色分け
         plt.subplot(1, 2, 1)
         if pattern_groups is not None:
-            # パターンごとに色分けしてプロット
             for group_name in pattern_groups.keys():
                 group_indices = [i for i, label in enumerate(pattern_labels) if label == group_name]
                 if group_indices:
                     group_points = X_2d[group_indices]
-                    plt.scatter(group_points[:, 0], group_points[:, 1],
-                               c=pattern_colors[group_name],
-                               label=f'{group_name} ({len(group_indices)})',
-                               alpha=alpha_val, s=point_size, edgecolors='black', linewidth=0.5)
+                    if group_name == 'other':
+                        plt.scatter(group_points[:, 0], group_points[:, 1],
+                                   c=pattern_colors[group_name],
+                                   label=f'{group_name} (外れ値, {len(group_indices)})',
+                                   alpha=alpha_val, s=point_size,
+                                   edgecolors='black', linewidth=0.8, marker='^')
+                    else:
+                        plt.scatter(group_points[:, 0], group_points[:, 1],
+                                   c=pattern_colors[group_name],
+                                   label=f'{group_name} ({len(group_indices)})',
+                                   alpha=alpha_val, s=point_size, edgecolors='black', linewidth=0.5)
 
-            plt.title(f"Pattern-based Grouping ({method_name})\n{dataset_name.capitalize()} Dataset{title_suffix}", fontsize=12)
+            plt.title(f"Pattern-based Grouping ({method_name})", fontsize=12)
             plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=10)
-
         else:
             plt.scatter(X_2d[:, 0], X_2d[:, 1], c='gray', alpha=alpha_val, s=point_size)
-            plt.title(f"Original Data ({method_name})\n{dataset_name.capitalize()} Dataset{title_suffix}")
+            plt.title(f"Original Data ({method_name})")
 
-        # 軸の範囲を適切に設定（負の値も見やすく）
-        x_margin = (np.max(X_2d[:, 0]) - np.min(X_2d[:, 0])) * 0.05
-        y_margin = (np.max(X_2d[:, 1]) - np.min(X_2d[:, 1])) * 0.05
-        plt.xlim(np.min(X_2d[:, 0]) - x_margin, np.max(X_2d[:, 0]) + x_margin)
-        plt.ylim(np.min(X_2d[:, 1]) - y_margin, np.max(X_2d[:, 1]) + y_margin)
-
-        plt.xlabel(f"{method_name} Component 1" if n_features > 2 else "Feature 1", fontsize=11)
-        plt.ylabel(f"{method_name} Component 2" if n_features > 2 else "Feature 2", fontsize=11)
+        plt.xlabel(f"{method_name} Component 1" if n_features > 2 else "Feature 1")
+        plt.ylabel(f"{method_name} Component 2" if n_features > 2 else "Feature 2")
         plt.grid(True, alpha=0.4)
 
-        # 右側: クラスタリング結果（全体表示）
+        # 右側: クラスタリング結果
         plt.subplot(1, 2, 2)
-        scatter2 = plt.scatter(X_2d[:, 0], X_2d[:, 1], c=final_labels, cmap='tab10',
-                              alpha=alpha_val, s=point_size, edgecolors='black', linewidth=0.5)
-        plt.title(f"{algo_title} Results ({method_name})\n{dataset_name.capitalize()} Dataset{title_suffix}", fontsize=12)
+        plt.scatter(X_2d[:, 0], X_2d[:, 1], c=final_labels, cmap='tab10',
+                   alpha=alpha_val, s=point_size, edgecolors='black', linewidth=0.5)
+        plt.title(f"{algo_title} Results ({method_name})", fontsize=12)
 
-        # クラスター情報を見やすく表示（カラーバーの代わり）
+        # セントロイドをプロット
+        plt.scatter(C_final_2d[:, 0], C_final_2d[:, 1],
+                   c='red', s=250, marker='X', edgecolor='black', linewidth=2, alpha=1.0)
+
+        # クラスター統計を凡例として表示
         unique_clusters = np.unique(final_labels)
-
-        # 各クラスターの色を取得（tab10カラーマップを使用）
-        tab10_colors = cm.get_cmap('tab10')
-
-        # 色の凡例を個別に作成（右上に配置）
         legend_elements = []
         for cluster_id in unique_clusters:
             cluster_count = np.sum(final_labels == cluster_id)
-            color_rgb = tab10_colors(cluster_id / 10.0)
             legend_elements.append(plt.Line2D([0], [0], marker='o', color='w',
-                                            markerfacecolor=color_rgb, markersize=8,
-                                            label=f'Cluster {cluster_id} ({cluster_count} files)'))
-
-        # 最終セントロイドをプロット
-        scatter_centroids = plt.scatter(C_final_2d[:, 0], C_final_2d[:, 1],
-                   c='red', s=250, marker='X', edgecolor='black', linewidth=2,
-                   alpha=1.0)
-
-        # セントロイドの凡例を追加
+                                            markerfacecolor=cm.get_cmap('tab10')(cluster_id / 10.0), markersize=8,
+                                            label=f'C{cluster_id} ({cluster_count})'))
         legend_elements.append(plt.Line2D([0], [0], marker='X', color='w',
                                         markerfacecolor='red', markersize=12, markeredgecolor='black',
-                                        label='Final Centroids'))
+                                        label='Centroids'))
+        plt.legend(handles=legend_elements, loc='upper right', fontsize=9)
 
-        # 統合された凡例を表示
-        plt.legend(handles=legend_elements, loc='upper right', fontsize=9,
-                  bbox_to_anchor=(0.98, 0.98), framealpha=0.9)
-
-        # 軸の範囲を適切に設定（負の値も見やすく）
-        plt.xlim(np.min(X_2d[:, 0]) - x_margin, np.max(X_2d[:, 0]) + x_margin)
-        plt.ylim(np.min(X_2d[:, 1]) - y_margin, np.max(X_2d[:, 1]) + y_margin)
-
-        plt.xlabel(f"{method_name} Component 1" if n_features > 2 else "Feature 1", fontsize=11)
-        plt.ylabel(f"{method_name} Component 2" if n_features > 2 else "Feature 2", fontsize=11)
+        plt.xlabel(f"{method_name} Component 1" if n_features > 2 else "Feature 1")
+        plt.ylabel(f"{method_name} Component 2" if n_features > 2 else "Feature 2")
         plt.grid(True, alpha=0.4)
 
         plt.tight_layout()
 
-        # 画像として保存（タイムスタンプと手法名付き）
+        # 画像として保存
         method_filename = method_name.lower().replace('-', '_')
-        # output_dirからタイムスタンプを抽出
         timestamp = output_dir.split('_')[-1] if 'clustering_results_' in output_dir else datetime.now().strftime('%Y%m%d_%H%M%S')
         filename = os.path.join(output_dir, f"clustering_result_{dataset_name}_{algo_title.lower().replace(' ', '_').replace('-', '_')}_{method_filename}_{timestamp}.png")
         plt.savefig(filename, dpi=200, bbox_inches='tight')
-        print(f"📸 {method_name}可視化結果を '{filename}' として保存しました。")
+
+        print(f"\n📈 {method_name}可視化結果を '{filename}' として保存しました。")
 
         plt.show()
-
-        # 手法別の統計情報を表示
-        print(f"\n📊 {method_name}統計情報:")
-        print(f"  データ範囲 Dim1: [{np.min(X_2d[:, 0]):.2f}, {np.max(X_2d[:, 0]):.2f}]")
-        print(f"  データ範囲 Dim2: [{np.min(X_2d[:, 1]):.2f}, {np.max(X_2d[:, 1]):.2f}]")
-        print(f"  標準偏差 Dim1: {np.std(X_2d[:, 0]):.2f}")
-        print(f"  標準偏差 Dim2: {np.std(X_2d[:, 1]):.2f}")
-        print(f"  手法情報: {method_info}")
-
-    # パターン分析結果の出力（プロットの外で表示）
-    if pattern_groups is not None:
-        print(f"\n🎨 パターン分析結果:")
-        for group_name, group_files in pattern_groups.items():
-            group_count = len([f for f in group_files if f['file_path'] in file_paths])
-            print(f"  {group_name}: {group_count} ファイル (色: {pattern_colors[group_name]})")
-
-    # クラスター分析結果の出力（プロットの外で表示）
-    unique_clusters = np.unique(final_labels)
-    print(f"\n📊 クラスター分析結果（詳細）:")
-    print("=" * 80)
-
-    if file_paths is not None:
-        # ファイル名のリストを作成（JSONデータから）
-        file_names_from_paths = [path.split('/')[-1] for path in file_paths]
-
-        for cluster_id in unique_clusters:
-            cluster_mask = final_labels == cluster_id
-            cluster_files = [file_names_from_paths[i] for i in range(len(file_names_from_paths)) if cluster_mask[i]]
-            cluster_paths = [file_paths[i] for i in range(len(file_paths)) if cluster_mask[i]]
-
-            print(f"\n🏷️ Cluster {cluster_id} ({len(cluster_files)} ファイル):")
-
-            # パターン別の分布を分析
-            pattern_distribution = {}
-            for path in cluster_paths:
-                if 'pattern1' in path:
-                    pattern_distribution['pattern1'] = pattern_distribution.get('pattern1', 0) + 1
-                elif 'pattern2' in path:
-                    pattern_distribution['pattern2'] = pattern_distribution.get('pattern2', 0) + 1
-                elif 'pattern3' in path:
-                    pattern_distribution['pattern3'] = pattern_distribution.get('pattern3', 0) + 1
-                elif 'pattern4' in path:
-                    pattern_distribution['pattern4'] = pattern_distribution.get('pattern4', 0) + 1
-                else:
-                    pattern_distribution['other'] = pattern_distribution.get('other', 0) + 1
-
-            # パターン分布を表示
-            if pattern_distribution:
-                pattern_info = ", ".join([f"{pattern}: {count}" for pattern, count in pattern_distribution.items()])
-                print(f"   📂 パターン分布: {pattern_info}")
-
-            # ファイル一覧を表示
-            print(f"   📄 ファイル一覧:")
-            sorted_files = sorted(zip(cluster_files, cluster_paths))
-            for i, (filename, filepath) in enumerate(sorted_files, 1):
-                # パスからパターン情報を抽出
-                if 'pattern' in filepath:
-                    pattern_info = filepath.split('/')[-2] if '/' in filepath else 'unknown'
-                else:
-                    pattern_info = 'root'
-                print(f"      {i:2d}. {filename:<25} ({pattern_info})")
-
-                if i >= 15 and len(sorted_files) > 15:  # 15個まで表示
-                    remaining = len(sorted_files) - 15
-                    print(f"         ... および {remaining} 個のファイル")
-                    break
-    else:
-        for cluster_id in unique_clusters:
-            cluster_count = np.sum(final_labels == cluster_id)
-            print(f"  Cluster {cluster_id}: {cluster_count} ファイル")
-
-    print("=" * 80)
 
 if __name__ == '__main__':
 
     # --- 実際のコード特徴量を使ったクラスタリング ---
     if FEATURE_EXTRACTION_AVAILABLE:
-        print("\n=== Real Code Features Dataset: 実際のコードファイルからの特徴量クラスタリング ===")
+        # 実行履歴を追跡
+        executed_directories = []
+        all_saved_files = []
 
-        saved_files = []
+        # 連続実行ループ
+        while True:
+            saved_files = []
+            shared_data = None
 
-        try:
-            # 1. 一般的なK-meansアルゴリズムを実行
-            print("\n🔄 一般的なK-meansクラスタリングを実行中...")
-            general_result_file, general_output_dir = main(algorithm_type='general', dataset_name='real_code_features')
-            saved_files.append(('general', general_result_file, general_output_dir))
+            try:
+                # データセット作成
+                shared_data = create_dataset('real_code_features')
+            except Exception as e:
+                print(f"❌ データセット作成エラー: {e}")
+                shared_data = None
 
-        except Exception as e:
-            print(f"❌ 一般的なK-meansクラスタリングでエラー: {e}")
-            print("エラーの詳細を確認してください。")
+            if shared_data is not None:
+                # 実行したディレクトリを記録
+                if len(shared_data) >= 7:
+                    current_dir = os.path.basename(os.path.dirname(shared_data[6][0])) if shared_data[6] else "unknown"
+                    if current_dir not in executed_directories:
+                        executed_directories.append(current_dir)
 
-        try:
-            # 2. 正解判定関数を利用したクラスタリングを実行
-            print("\n🎯 正解判定関数を利用したクラスタリングを実行中...")
-            correctness_result_file, correctness_output_dir = main(algorithm_type='correctness_guided', dataset_name='real_code_features')
-            saved_files.append(('correctness_guided', correctness_result_file, correctness_output_dir))
+                try:
+                    # 1. 一般的なK-meansアルゴリズム
+                    general_result_file, general_output_dir = main(algorithm_type='general', dataset_name='real_code_features', preloaded_data=shared_data)
+                    saved_files.append(('general', general_result_file, general_output_dir))
+                    all_saved_files.append(('general', general_result_file, general_output_dir, current_dir))
+                except Exception as e:
+                    print(f"❌ 一般的なK-meansクラスタリングエラー: {e}")
 
-        except Exception as e:
-            print(f"❌ 正解判定関数を利用したクラスタリングでエラー: {e}")
-            print("エラーの詳細を確認してください。")
+                try:
+                    # 2. 正解判定関数を利用したクラスタリング
+                    correctness_result_file, correctness_output_dir = main(algorithm_type='correctness_guided', dataset_name='real_code_features', preloaded_data=shared_data)
+                    saved_files.append(('correctness_guided', correctness_result_file, correctness_output_dir))
+                    all_saved_files.append(('correctness_guided', correctness_result_file, correctness_output_dir, current_dir))
+                except Exception as e:
+                    print(f"❌ 正解判定関数クラスタリングエラー: {e}")
 
-        # 結果サマリーの表示
-        print(f"\n{'='*80}")
-        print("🎉 クラスタリング実行完了サマリー")
-        print(f"{'='*80}")
+                # 結果サマリー
+                print(f"\n{'='*60}")
+                print("🎉 クラスタリング完了")
+                if saved_files:
+                    for algorithm_type, result_file, output_dir in saved_files:
+                        if result_file:
+                            print(f"✅ {algorithm_type.upper()}: {os.path.basename(result_file)}")
+                        else:
+                            print(f"❌ {algorithm_type.upper()}: 保存失敗")
+                print(f"{'='*60}")
 
-        if saved_files:
-            for algorithm_type, result_file, output_dir in saved_files:
-                if result_file:
-                    print(f"✅ {algorithm_type.upper()}:")
-                    print(f"   📁 結果ディレクトリ: {output_dir}")
-                    print(f"   📄 結果ファイル: {os.path.basename(result_file)}")
+            # 次の実行選択
+            atcoder_base = "../atcoder"
+            available_dirs = []
+            if os.path.exists(atcoder_base):
+                try:
+                    for item in os.listdir(atcoder_base):
+                        item_path = os.path.join(atcoder_base, item)
+                        if os.path.isdir(item_path) and item.startswith("submissions_typical90_"):
+                            available_dirs.append(item)
+                    available_dirs.sort()
+                except Exception:
+                    pass
+
+            # 選択肢を表示
+            if available_dirs:
+                print(f"\n利用可能ディレクトリ:")
+                for i, dirname in enumerate(available_dirs, 1):
+                    status = " (✅)" if dirname in executed_directories else ""
+                    print(f"  {i}. {dirname}{status}")
+                print(f"  0. 終了")
+
+                choice = input(f"\n選択 (0-{len(available_dirs)}): ").strip()
+
+                if choice == "0" or choice.lower() in ['exit', 'quit', 'q']:
+                    # 全体のサマリーを表示
+                    if all_saved_files:
+                        print(f"\n{'='*80}")
+                        print("🎊 全実行サマリー")
+                        print(f"{'='*80}")
+                        print(f"📊 実行ディレクトリ数: {len(executed_directories)}")
+                        print(f"📁 実行済みディレクトリ: {', '.join(executed_directories)}")
+                        print(f"� 生成ファイル数: {len(all_saved_files)}")
+
+                        print(f"\n📂 ディレクトリ別結果:")
+                        current_dir_files = {}
+                        for algo_type, result_file, output_dir, dir_name in all_saved_files:
+                            if dir_name not in current_dir_files:
+                                current_dir_files[dir_name] = []
+                            current_dir_files[dir_name].append((algo_type, result_file, output_dir))
+
+                        for dir_name, files in current_dir_files.items():
+                            print(f"   📁 {dir_name}:")
+                            for algo_type, result_file, output_dir in files:
+                                if result_file:
+                                    print(f"      ✅ {algo_type}: {os.path.basename(result_file)}")
+                                else:
+                                    print(f"      ❌ {algo_type}: 保存失敗")
+                        print(f"{'='*80}")
+
+                    print("�👋 プログラムを終了します。")
+                    break
+                elif choice.isdigit():
+                    choice_num = int(choice)
+                    if 1 <= choice_num <= len(available_dirs):
+                        # 選択されたディレクトリで次回実行
+                        selected_dir = available_dirs[choice_num - 1]
+                        if selected_dir in executed_directories:
+                            confirm = input(f"⚠️ {selected_dir} は既に実行済みです。再実行しますか？ (y/n): ").strip().lower()
+                            if confirm not in ['y', 'yes', '']:
+                                continue
+                        print(f"📁 次回実行ディレクトリ: {selected_dir}")
+                        continue
+                    elif choice_num == len(available_dirs) + 1:
+                        print("📝 別のディレクトリパスを次回入力で指定できます。")
+                        continue
+                    else:
+                        print("❌ 無効な選択です。終了します。")
+                        break
                 else:
-                    print(f"❌ {algorithm_type.upper()}: 結果保存に失敗")
-        else:
-            print("❌ すべてのアルゴリズムで実行に失敗しました")
-
-        print(f"{'='*80}")
+                    print("❌ 無効な入力です。終了します。")
+                    break
+            else:
+                # ディレクトリが見つからない場合
+                print("📂 利用可能なディレクトリ情報を取得できませんでした。")
+                continue_choice = input("別のディレクトリで続行しますか？ (y/n): ").strip().lower()
+                if continue_choice not in ['y', 'yes', '']:
+                    print("👋 プログラムを終了します。")
+                    break
 
     else:
         print("⚠️ 特徴量抽出モジュールが利用できないため、実際のコードファイル解析をスキップします。")

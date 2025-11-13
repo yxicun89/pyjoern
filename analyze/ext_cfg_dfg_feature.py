@@ -177,7 +177,7 @@ def batch_extract_integrated_features(file_list):
     """
     results = []
 
-    print(f"📂 統合特徴量一括抽出開始 ({len(file_list)}ファイル)")
+    print(f"📂 統合特徴量抽出開始: {len(file_list)}ファイル")
 
     for i, source_file in enumerate(file_list, 1):
         try:
@@ -188,7 +188,6 @@ def batch_extract_integrated_features(file_list):
             })
 
         except Exception as e:
-            print(f"❌ エラー: {e}")
             # エラー時はゼロベクトルを追加
             results.append({
                 'source_file': source_file,
@@ -210,7 +209,7 @@ def batch_extract_cfg_features(file_list):
     """
     results = []
 
-    print(f"📂 CFG特徴量一括抽出開始 ({len(file_list)}ファイル)")
+    print(f"📂 CFG特徴量抽出開始: {len(file_list)}ファイル")
 
     for i, source_file in enumerate(file_list, 1):
         try:
@@ -218,7 +217,6 @@ def batch_extract_cfg_features(file_list):
             results.append(result)
 
         except Exception as e:
-            print(f"❌ エラー: {e}")
             # エラー時はゼロベクトルを追加
             error_result = {
                 'source_file': source_file,
@@ -275,7 +273,7 @@ def find_files_in_directory(directory, file_extensions=['.py', '.c', '.cpp', '.j
 
 def analyze_file_groups(file_list, base_directory):
     """
-    ファイルをpatternディレクトリ別にグループ分けして分析
+    ファイルをパターン別にグループ分けして分析（動的パターン認識対応）
 
     Args:
         file_list (list): ファイルパスのリスト
@@ -284,17 +282,16 @@ def analyze_file_groups(file_list, base_directory):
     Returns:
         dict: グループ分析結果
     """
+    import re
+
     groups = {}
 
     for file_path in file_list:
         relative_path = os.path.relpath(file_path, base_directory)
         path_parts = relative_path.split(os.sep)
 
-        # patternディレクトリかどうかを判定
-        if len(path_parts) > 1 and path_parts[0].startswith('pattern'):
-            group_name = path_parts[0]  # pattern_1, pattern_2, etc.
-        else:
-            group_name = 'other'  # その他のファイル
+        # 動的パターン抽出（kmeans_final_clean.pyと同じロジック）
+        group_name = extract_pattern_from_file_path(file_path)
 
         if group_name not in groups:
             groups[group_name] = []
@@ -302,10 +299,68 @@ def analyze_file_groups(file_list, base_directory):
         groups[group_name].append({
             'file_path': file_path,
             'relative_path': relative_path,
-            'filename': os.path.basename(file_path)
+            'filename': os.path.basename(file_path),
+            'pattern': group_name
         })
 
     return groups
+
+def extract_pattern_from_file_path(filepath):
+    """
+    ファイルパスからパターン情報を動的に抽出
+
+    Args:
+        filepath: ファイルパス
+
+    Returns:
+        str: パターン名 (例: "typical90_aa", "typical90_d", "AC", "TLE")
+    """
+    import re
+
+    # パスを正規化（バックスラッシュをスラッシュに変換）
+    normalized_path = filepath.replace('\\', '/')
+
+    # パターンを検出する正規表現のリスト（優先順位順）
+    pattern_regexes = [
+        # submissions_typical90_xx パターン（最優先）
+        (r'submissions_typical90_([a-z]+)', lambda m: f"typical90_{m.group(1)}"),
+        # pattern + 数字
+        (r'pattern(\d+)', lambda m: f"pattern{m.group(1)}"),
+        # AC, TLE などの結果パターン（明確なアンダースコア区切り）
+        (r'_([A-Z]{2,3})(?:_|$|/)', lambda m: m.group(1)),
+        # ディレクトリ名が結果を表す場合
+        (r'/([A-Z]{2,3})/', lambda m: m.group(1)),
+        # その他のsubmissions_パターン
+        (r'submissions_([^/]+?)(?:_\d+)?/', lambda m: m.group(1) if not m.group(1).startswith('submission') else None),
+    ]
+
+    for pattern_regex, extract_func in pattern_regexes:
+        match = re.search(pattern_regex, normalized_path)
+        if match:
+            result = extract_func(match)
+            if result:
+                # 一般的でない形式や短すぎるパターンを除外
+                if len(result) >= 2 and not result.isdigit():
+                    return result
+
+    # どのパターンにも一致しない場合
+    # ただし、明らかにファイル名パターンがある場合は再試行
+    filename = os.path.basename(filepath)
+
+    # ファイル名からパターンを抽出する最後の試行
+    filename_patterns = [
+        (r'^([a-z]+\d*)_', lambda m: m.group(1)),  # prefix_xxx形式
+        (r'_([a-z]+\d*)\.', lambda m: m.group(1)), # xxx_suffix.ext形式
+    ]
+
+    for pattern_regex, extract_func in filename_patterns:
+        match = re.search(pattern_regex, filename.lower())
+        if match:
+            result = extract_func(match)
+            if result and len(result) >= 2:
+                return result
+
+    return "other"
 
 def save_feature_vectors(batch_results, groups=None, base_directory=None, output_file=None, format='json'):
     """
@@ -326,6 +381,23 @@ def save_feature_vectors(batch_results, groups=None, base_directory=None, output
             output_file = f"feature_vectors_{timestamp}.pkl"
 
     try:
+        # ファイルメタデータを収集（差分検出用）
+        file_metadata = {}
+        for result in batch_results:
+            if 'source_file' in result:
+                file_path = result['source_file']
+                try:
+                    if os.path.exists(file_path):
+                        mtime = os.path.getmtime(file_path)
+                        size = os.path.getsize(file_path)
+                        file_metadata[file_path] = {
+                            'mtime': mtime,
+                            'size': size,
+                            'timestamp': datetime.fromtimestamp(mtime).isoformat()
+                        }
+                except Exception as e:
+                    print(f"⚠️ ファイルメタデータ取得エラー {file_path}: {e}")
+
         # メタデータを追加
         save_data = {
             'timestamp': datetime.now().isoformat(),
@@ -335,26 +407,19 @@ def save_feature_vectors(batch_results, groups=None, base_directory=None, output
                 'cfg_features': get_cfg_feature_names(),
                 'dataflow_features': get_dataflow_feature_names()
             },
+            'file_metadata': file_metadata,  # 差分検出用メタデータ
             'data': batch_results
         }
 
         # パターン別セントロイドも計算・保存
         if groups is not None and base_directory is not None:
-            print("🎯 セントロイド情報を計算して追加中...")
             centroids_data = calculate_pattern_centroids(batch_results, groups, base_directory)
 
             if centroids_data and centroids_data['centroids']:
                 save_data['pattern_centroids'] = centroids_data
-                print(f"✅ {len(centroids_data['centroids'])}個のパターンセントロイドを追加しました")
-
-                # セントロイド概要を表示
-                for pattern_name, centroid_info in centroids_data['centroids'].items():
-                    centroid = centroid_info['centroid_vector']
-                    count = centroid_info['sample_count']
-                    print(f"   {pattern_name}: {count}ファイル → 重心[{', '.join([f'{x:.3f}' for x in centroid[:3]])}...]")
+                print(f"✅ セントロイド追加: {len(centroids_data['centroids'])}個")
             else:
                 save_data['pattern_centroids'] = None
-                print("⚠️ セントロイドが計算できませんでした")
         else:
             save_data['pattern_centroids'] = None
 
@@ -367,12 +432,10 @@ def save_feature_vectors(batch_results, groups=None, base_directory=None, output
         else:
             raise ValueError("format は 'json' または 'pickle' を指定してください")
 
-        print(f"💾 特徴量ベクトル{'とセントロイド' if save_data['pattern_centroids'] else ''}を '{output_file}' に保存しました")
-        print(f"   形式: {format.upper()}")
-        print(f"   総ファイル数: {save_data['total_files']}")
-        print(f"   成功数: {save_data['successful_extractions']}")
+        print(f"💾 特徴量ベクトル保存: '{output_file}' ({format.upper()})")
+        print(f"   総ファイル: {save_data['total_files']}, 成功: {save_data['successful_extractions']}")
         if save_data['pattern_centroids']:
-            print(f"   セントロイド数: {len(save_data['pattern_centroids']['centroids'])}個のパターン")
+            print(f"   セントロイド: {len(save_data['pattern_centroids']['centroids'])}個")
 
         return output_file
 
@@ -400,10 +463,8 @@ def load_feature_vectors(input_file):
         else:
             raise ValueError("ファイル形式が不正です（.json または .pkl のみサポート）")
 
-        print(f"📂 特徴量ベクトルを '{input_file}' から読み込みました")
-        print(f"   保存日時: {data['timestamp']}")
-        print(f"   総ファイル数: {data['total_files']}")
-        print(f"   成功数: {data['successful_extractions']}")
+        print(f"📂 特徴量読み込み: '{input_file}'")
+        print(f"   ファイル数: {data['total_files']}, 成功: {data['successful_extractions']}")
 
         return data
 
@@ -423,13 +484,10 @@ def calculate_pattern_centroids(batch_results, groups, base_directory):
     Returns:
         dict: パターン別セントロイド情報
     """
-    print("🎯 パターン別重心（真のセントロイド）計算中...")
-
     # 成功した結果のみを使用
     successful_results = [r for r in batch_results if 'error' not in r]
 
     if len(successful_results) == 0:
-        print("❌ セントロイド計算対象のデータがありません")
         return {}
 
     # 特徴量ベクトルを取得
@@ -442,20 +500,20 @@ def calculate_pattern_centroids(batch_results, groups, base_directory):
         for file_info in group_files:
             file_to_group[file_info['file_path']] = group_name
 
-    # パターングループのみを対象にする
+    # パターングループのみを対象にする（外れ値otherは除外）
     pattern_groups = {k: v for k, v in groups.items() if k.startswith('pattern')}
 
-    # "other"グループ（rootファイル）も含める
+    # 外れ値('other')グループは真のセントロイドに含めない
     if 'other' in groups and len(groups['other']) > 0:
-        pattern_groups['other'] = groups['other']
-        print(f"📁 'other'グループ（rootファイル）も真のセントロイドに含めます: {len(groups['other'])}ファイル")
+        print(f"ℹ️  外れ値除外: {len(groups['other'])}ファイル (既存クラスターに分散配置)")
 
     centroids_data = {
         'metadata': {
             'timestamp': datetime.now().isoformat(),
             'base_directory': base_directory,
             'total_patterns': len(pattern_groups),
-            'includes_other_group': 'other' in pattern_groups,
+            'excludes_other_group': True,  # 外れ値(other)は除外
+            'meaningful_patterns_only': True,  # 意味あるパターンのみ
             'feature_dimension': len(feature_vectors[0]) if len(feature_vectors) > 0 else 0,
             'feature_names': {
                 'cfg_features': get_cfg_feature_names(),
@@ -465,7 +523,7 @@ def calculate_pattern_centroids(batch_results, groups, base_directory):
         'centroids': {}
     }
 
-    print(f"📊 {len(pattern_groups)}個のパターンからセントロイドを計算中...")
+    print(f"🎯 セントロイド計算: {len(pattern_groups)}個の意味あるパターン")
 
     for pattern_name, pattern_files in pattern_groups.items():
         # パターンに属するファイルのインデックスを取得
@@ -478,7 +536,6 @@ def calculate_pattern_centroids(batch_results, groups, base_directory):
                 pattern_file_paths.append(file_path)
 
         if not pattern_indices:
-            print(f"⚠️ {pattern_name}: データが見つかりません")
             continue
 
         # パターンの特徴量ベクトルを抽出
@@ -487,15 +544,14 @@ def calculate_pattern_centroids(batch_results, groups, base_directory):
         # セントロイド（重心）を計算
         centroid = np.mean(pattern_vectors, axis=0).tolist()
 
-        # セントロイド情報を保存（統計情報は削除）
+        # セントロイド情報を保存
         centroids_data['centroids'][pattern_name] = {
             'centroid_vector': centroid,
             'sample_count': len(pattern_indices),
             'file_paths': pattern_file_paths
         }
 
-        print(f"✅ {pattern_name}: セントロイド計算完了 ({len(pattern_indices)} ファイル)")
-        print(f"   重心ベクトル: {[f'{x:.3f}' for x in centroid[:6]][:3]}...")  # 最初の3要素のみ表示
+        print(f"   {pattern_name}: {len(pattern_indices)}ファイル")
 
     return centroids_data
 
@@ -520,16 +576,8 @@ def save_pattern_centroids(centroids_data, output_file=None):
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(centroids_data, f, indent=2, ensure_ascii=False)
 
-        print(f"💾 パターン別セントロイドを '{output_file}' に保存しました")
+        print(f"💾 セントロイド保存: '{output_file}'")
         print(f"   パターン数: {centroids_data['metadata']['total_patterns']}")
-        print(f"   特徴量次元: {centroids_data['metadata']['feature_dimension']}")
-
-        # セントロイド一覧を表示
-        print(f"📋 保存されたセントロイド:")
-        for pattern_name, centroid_info in centroids_data['centroids'].items():
-            sample_count = centroid_info['sample_count']
-            centroid_vector = centroid_info['centroid_vector']
-            print(f"   {pattern_name}: {sample_count}ファイル → [{', '.join([f'{x:.3f}' for x in centroid_vector[:3]])}...]")
 
         return output_file
 
@@ -551,10 +599,8 @@ def load_pattern_centroids(input_file):
         with open(input_file, 'r', encoding='utf-8') as f:
             data = json.load(f)
 
-        print(f"📂 パターン別セントロイドを '{input_file}' から読み込みました")
-        print(f"   保存日時: {data['metadata']['timestamp']}")
+        print(f"📂 セントロイド読み込み: '{input_file}'")
         print(f"   パターン数: {data['metadata']['total_patterns']}")
-        print(f"   特徴量次元: {data['metadata']['feature_dimension']}")
 
         return data
 
@@ -596,9 +642,152 @@ def check_cache_validity(target_directory, cache_file):
         print(f"⚠️ キャッシュ有効性チェックエラー: {e}")
         return False
 
+def detect_file_changes(target_directory, cache_file):
+    """
+    対象ディレクトリとキャッシュファイル間の差分を検出
+
+    Args:
+        target_directory (str): 対象ディレクトリ
+        cache_file (str): キャッシュファイル
+
+    Returns:
+        dict: {
+            'new_files': [],      # 新規追加されたファイル
+            'modified_files': [], # 変更されたファイル
+            'deleted_files': [],  # 削除されたファイル
+            'unchanged_files': [] # 変更なしファイル
+        }
+    """
+    print("🔍 ファイル差分検出中...")
+
+    # 現在のディレクトリ内のファイルを取得
+    current_files = find_files_in_directory(target_directory)
+    current_file_info = {}
+
+    for file_path in current_files:
+        try:
+            mtime = os.path.getmtime(file_path)
+            size = os.path.getsize(file_path)
+            current_file_info[file_path] = {
+                'mtime': mtime,
+                'size': size
+            }
+        except Exception as e:
+            print(f"⚠️ ファイル情報取得エラー {file_path}: {e}")
+            continue
+
+    # キャッシュファイルから既存情報を読み込み
+    cached_file_info = {}
+    if os.path.exists(cache_file):
+        try:
+            cached_data = load_feature_vectors(cache_file)
+            if cached_data and 'file_metadata' in cached_data:
+                cached_file_info = cached_data['file_metadata']
+            elif cached_data and 'data' in cached_data:
+                # 既存のキャッシュから情報を再構築
+                for item in cached_data['data']:
+                    if 'source_file' in item:
+                        file_path = item['source_file']
+                        if os.path.exists(file_path):
+                            try:
+                                mtime = os.path.getmtime(file_path)
+                                size = os.path.getsize(file_path)
+                                cached_file_info[file_path] = {
+                                    'mtime': mtime,
+                                    'size': size
+                                }
+                            except:
+                                pass
+        except Exception as e:
+            print(f"⚠️ キャッシュ読み込みエラー: {e}")
+
+    # 差分を計算
+    current_files_set = set(current_files)
+    cached_files_set = set(cached_file_info.keys())
+
+    # 新規ファイル
+    new_files = list(current_files_set - cached_files_set)
+
+    # 削除されたファイル
+    deleted_files = list(cached_files_set - current_files_set)
+
+    # 変更されたファイルと変更なしファイル
+    modified_files = []
+    unchanged_files = []
+
+    for file_path in current_files_set & cached_files_set:
+        current_info = current_file_info.get(file_path, {})
+        cached_info = cached_file_info.get(file_path, {})
+
+        # ファイルサイズまたは更新時刻が異なる場合は変更あり
+        if (current_info.get('mtime', 0) != cached_info.get('mtime', 0) or
+            current_info.get('size', 0) != cached_info.get('size', 0)):
+            modified_files.append(file_path)
+        else:
+            unchanged_files.append(file_path)
+
+    changes = {
+        'new_files': new_files,
+        'modified_files': modified_files,
+        'deleted_files': deleted_files,
+        'unchanged_files': unchanged_files
+    }
+
+    # 差分情報を表示
+    print(f"📊 ファイル差分: 新規{len(new_files)} 変更{len(modified_files)} 削除{len(deleted_files)} 変更なし{len(unchanged_files)}")
+
+    return changes
+
+def update_cache_incrementally(target_directory, cache_file, file_changes):
+    """
+    ファイル差分に基づいてキャッシュを増分更新
+
+    Args:
+        target_directory (str): 対象ディレクトリ
+        cache_file (str): キャッシュファイル
+        file_changes (dict): detect_file_changes()の戻り値
+
+    Returns:
+        list: 更新後の特徴量データ
+    """
+    print("🔄 キャッシュ増分更新中...")
+
+    # 既存キャッシュを読み込み
+    existing_data = []
+    existing_metadata = {}
+    if os.path.exists(cache_file):
+        try:
+            cached_data = load_feature_vectors(cache_file)
+            if cached_data and 'data' in cached_data:
+                existing_data = cached_data['data']
+            if cached_data and 'file_metadata' in cached_data:
+                existing_metadata = cached_data['file_metadata']
+        except Exception as e:
+            print(f"⚠️ 既存キャッシュ読み込みエラー: {e}")
+
+    # 変更なしファイルのデータを保持
+    preserved_data = []
+    for item in existing_data:
+        if 'source_file' in item and item['source_file'] in file_changes['unchanged_files']:
+            preserved_data.append(item)
+
+    # 新規・変更ファイルを処理
+    files_to_process = file_changes['new_files'] + file_changes['modified_files']
+    new_data = []
+
+    if files_to_process:
+        new_data = batch_extract_integrated_features(files_to_process)
+
+    # データを統合
+    updated_data = preserved_data + new_data
+
+    print(f"📦 保持: {len(preserved_data)}, 新規処理: {len(new_data)}, 総計: {len(updated_data)}")
+
+    return updated_data
+
 def visualize_feature_distribution(batch_results, groups, base_directory):
     """
-    特徴量の分布をグループ別に可視化（全体＋パターン別個別プロット）
+    特徴量の分布をグループ別に可視化
 
     Args:
         batch_results (list): 特徴量抽出結果
@@ -621,7 +810,6 @@ def visualize_feature_distribution(batch_results, groups, base_directory):
     group_colors = {}
     color_palette = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'pink', 'olive', 'cyan']
 
-    # otherグループは灰色に設定
     color_idx = 0
     for group_name, group_files in groups.items():
         if group_name == 'other':
@@ -642,20 +830,11 @@ def visualize_feature_distribution(batch_results, groups, base_directory):
         labels.append(group)
 
     # PCAで2次元に次元削減
-    print("📊 PCAで次元削減中...")
+    print("📊 PCA可視化中...")
     pca = PCA(n_components=2)
     feature_vectors_2d = pca.fit_transform(feature_vectors)
 
-    # タイムスタンプを生成（全プロットで共通）
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-
-    # 結果保存用ディレクトリを作成
-    output_dir = f"feature_visualization_{timestamp}"
-    os.makedirs(output_dir, exist_ok=True)
-    print(f"📁 可視化結果保存ディレクトリ: {output_dir}")
-
-    # 1. 全体プロット（すべてのグループを含む）
-    print("🎨 全体プロット作成中...")
+    # 全体プロット
     plt.figure(figsize=(12, 8))
 
     # グループごとにプロット
@@ -665,363 +844,83 @@ def visualize_feature_distribution(batch_results, groups, base_directory):
             group_points = feature_vectors_2d[group_indices]
             plt.scatter(group_points[:, 0], group_points[:, 1],
                        c=group_colors[group_name],
-                       label=f'{group_name} ({len(group_indices)} files)',
+                       label=f'{group_name} ({len(group_indices)})',
                        alpha=0.7, s=60)
 
-    plt.title(f'Feature Distribution Visualization (All Patterns)\n{base_directory}', fontsize=14)
-    plt.xlabel(f'PC1 (Explained Variance: {pca.explained_variance_ratio_[0]:.2%})', fontsize=12)
-    plt.ylabel(f'PC2 (Explained Variance: {pca.explained_variance_ratio_[1]:.2%})', fontsize=12)
-    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.title(f'Feature Distribution\n{base_directory}', fontsize=14)
+    plt.xlabel(f'PC1 ({pca.explained_variance_ratio_[0]:.2%})', fontsize=12)
+    plt.ylabel(f'PC2 ({pca.explained_variance_ratio_[1]:.2%})', fontsize=12)
+    plt.legend()
     plt.grid(True, alpha=0.3)
-
-    # 統計情報を表示
-    total_variance = sum(pca.explained_variance_ratio_)
-    plt.figtext(0.02, 0.02, f'Total Explained Variance: {total_variance:.2%}', fontsize=10)
-
     plt.tight_layout()
 
-    # 全体プロットを保存
-    all_filename = os.path.join(output_dir, f"feature_distribution_all_{timestamp}.png")
-    plt.savefig(all_filename, dpi=150, bbox_inches='tight')
-    print(f"📸 全体プロットを '{all_filename}' として保存しました。")
+    # 保存
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f"feature_distribution_{timestamp}.png"
+    plt.savefig(filename, dpi=150, bbox_inches='tight')
+    print(f"📸 可視化保存: {filename}")
 
     plt.show()
 
-    # 2. パターン別個別プロット
-    pattern_groups = {k: v for k, v in groups.items() if k.startswith('pattern')}
-
-    if pattern_groups:
-        print(f"\n🎨 パターン別個別プロット作成中... ({len(pattern_groups)}個のパターン)")
-
-        for pattern_name, pattern_files in pattern_groups.items():
-            # パターンに属するファイルのインデックスを取得
-            pattern_indices = [i for i, label in enumerate(labels) if label == pattern_name]
-
-            if not pattern_indices:
-                print(f"⚠️ {pattern_name}: データが見つかりません")
-                continue
-
-            # パターン用のデータを抽出
-            pattern_vectors_2d = feature_vectors_2d[pattern_indices]
-            pattern_vectors_original = feature_vectors[pattern_indices]
-
-            # パターン別PCAを実行（そのパターンのデータのみで）
-            if len(pattern_indices) > 1:  # 2つ以上のサンプルが必要
-                pattern_pca = PCA(n_components=min(2, len(pattern_indices)-1))
-                try:
-                    pattern_vectors_pca = pattern_pca.fit_transform(pattern_vectors_original)
-                    use_pattern_pca = True
-                    pattern_explained_var = pattern_pca.explained_variance_ratio_
-                except:
-                    # PCAが失敗した場合は全体PCAの結果を使用
-                    pattern_vectors_pca = pattern_vectors_2d
-                    use_pattern_pca = False
-                    pattern_explained_var = [0, 0]
-            else:
-                pattern_vectors_pca = pattern_vectors_2d
-                use_pattern_pca = False
-                pattern_explained_var = [0, 0]
-
-            # プロット作成
-            plt.figure(figsize=(10, 8))
-
-            # パターン内でのファイル名による色分け（グラデーション）
-            pattern_color_base = group_colors[pattern_name]
-            n_files = len(pattern_indices)
-
-            if n_files > 1:
-                # 複数ファイルがある場合はグラデーション
-                cmap = plt.cm.get_cmap('viridis')
-                colors_pattern = [cmap(i / (n_files - 1)) for i in range(n_files)]
-            else:
-                colors_pattern = [pattern_color_base]
-
-            scatter = plt.scatter(pattern_vectors_pca[:, 0], pattern_vectors_pca[:, 1],
-                                c=colors_pattern, s=100, alpha=0.8, edgecolors='black', linewidth=0.5)
-
-            # ファイル名をアノテーション
-            pattern_file_paths = [file_paths[i] for i in pattern_indices]
-            for i, (x, y) in enumerate(pattern_vectors_pca):
-                filename = os.path.basename(pattern_file_paths[i])
-                plt.annotate(filename, (x, y), xytext=(5, 5), textcoords='offset points',
-                           fontsize=8, alpha=0.8)
-
-            # タイトルと軸ラベル
-            pca_info = ""
-            if use_pattern_pca and len(pattern_explained_var) >= 2:
-                pca_info = f"\nPattern-specific PCA: PC1={pattern_explained_var[0]:.2%}, PC2={pattern_explained_var[1]:.2%}"
-            else:
-                pca_info = f"\nUsing global PCA projection"
-
-            plt.title(f'{pattern_name.upper()} Feature Distribution\n{len(pattern_files)} files{pca_info}',
-                     fontsize=14)
-
-            if use_pattern_pca:
-                plt.xlabel(f'{pattern_name} PC1', fontsize=12)
-                plt.ylabel(f'{pattern_name} PC2', fontsize=12)
-            else:
-                plt.xlabel(f'Global PC1', fontsize=12)
-                plt.ylabel(f'Global PC2', fontsize=12)
-
-            plt.grid(True, alpha=0.3)
-
-            # 統計情報テキストボックス
-            stats_text = f"Files: {n_files}\n"
-            if len(pattern_vectors_original) > 0:
-                avg_vector = np.mean(pattern_vectors_original, axis=0)
-                std_vector = np.std(pattern_vectors_original, axis=0)
-                stats_text += f"Avg complexity: {avg_vector[5]:.1f}\n"  # cyclomatic_complexity
-                stats_text += f"Avg paths: {avg_vector[4]:.1f}"  # paths
-
-            plt.text(0.02, 0.98, stats_text, transform=plt.gca().transAxes,
-                    fontsize=10, verticalalignment='top',
-                    bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
-
-            plt.tight_layout()
-
-            # パターン別プロットを保存
-            pattern_filename = os.path.join(output_dir, f"feature_distribution_{pattern_name}_{timestamp}.png")
-            plt.savefig(pattern_filename, dpi=150, bbox_inches='tight')
-            print(f"📸 {pattern_name}プロットを '{pattern_filename}' として保存しました。")
-
-            plt.show()
-
-    # 3. 比較サマリープロット（パターン別セントロイド）
-    if len(pattern_groups) > 1:
-        print(f"\n🎨 パターン比較サマリープロット作成中...")
-        plt.figure(figsize=(12, 8))
-
-        # 各パターンのセントロイド（平均）を計算
-        pattern_centroids = []
-        pattern_names_list = []
-        pattern_colors_list = []
-
-        for pattern_name, pattern_files in pattern_groups.items():
-            pattern_indices = [i for i, label in enumerate(labels) if label == pattern_name]
-            if pattern_indices:
-                pattern_vectors = feature_vectors[pattern_indices]
-                centroid = np.mean(pattern_vectors, axis=0)
-                pattern_centroids.append(centroid)
-                pattern_names_list.append(pattern_name)
-                pattern_colors_list.append(group_colors[pattern_name])
-
-        if pattern_centroids:
-            # セントロイドをPCAで可視化
-            centroids_array = np.array(pattern_centroids)
-            centroids_2d = pca.transform(centroids_array)
-
-            # セントロイドをプロット
-            scatter = plt.scatter(centroids_2d[:, 0], centroids_2d[:, 1],
-                                c=pattern_colors_list, s=200, alpha=0.8,
-                                edgecolors='black', linewidth=2, marker='D')
-
-            # パターン名をアノテーション
-            for i, (x, y) in enumerate(centroids_2d):
-                plt.annotate(pattern_names_list[i], (x, y), xytext=(10, 10),
-                           textcoords='offset points', fontsize=12, fontweight='bold')
-
-            plt.title(f'Pattern Centroids Comparison\n{base_directory}', fontsize=14)
-            plt.xlabel(f'PC1 (Explained Variance: {pca.explained_variance_ratio_[0]:.2%})', fontsize=12)
-            plt.ylabel(f'PC2 (Explained Variance: {pca.explained_variance_ratio_[1]:.2%})', fontsize=12)
-            plt.grid(True, alpha=0.3)
-
-            plt.tight_layout()
-
-            # 比較プロットを保存
-            comparison_filename = os.path.join(output_dir, f"feature_comparison_centroids_{timestamp}.png")
-            plt.savefig(comparison_filename, dpi=150, bbox_inches='tight')
-            print(f"📸 パターン比較プロットを '{comparison_filename}' として保存しました。")
-
-            plt.show()
-
-    # 詳細統計情報を出力
-    print(f"\n📈 特徴量分布統計:")
-    print(f"  総サンプル数: {len(successful_results)}")
-    print(f"  特徴量次元数: {feature_vectors.shape[1]}")
-    print(f"  PCA説明分散: PC1={pca.explained_variance_ratio_[0]:.2%}, PC2={pca.explained_variance_ratio_[1]:.2%}")
-
+    # 統計情報を出力
+    print(f"📈 統計: {len(successful_results)}サンプル, {feature_vectors.shape[1]}次元")
     for group_name, group_files in groups.items():
         group_count = len([f for f in group_files if f['file_path'] in file_paths])
-        print(f"  {group_name}: {group_count} ファイル (色: {group_colors[group_name]})")
+        print(f"  {group_name}: {group_count}ファイル")
 
 def main():
-    """メイン関数 - 複数ファイル一括処理のテスト実行（キャッシュ機能付き）"""
+    """メイン関数 - テスト実行"""
     print("🎯 統合特徴量抽出システム（CFG + データフロー）")
 
-    # 対象ディレクトリを指定
-    # target_directory = r"C:\Users\yxicu\python\pyjoern\atcoder\submissions_typical90_d_100"
-    target_directory = "../atcoder/submissions_typical90_d_100"
-
-    # キャッシュファイル名を生成
+    target_directory = "submissions_typical90_d_15_AC_TLE"
     cache_file = f"feature_cache_{os.path.basename(target_directory)}.json"
 
-    # ディレクトリが存在するかチェック
     if not os.path.exists(target_directory):
-        print(f"❌ 指定されたディレクトリが存在しません: {target_directory}")
-        print("処理を終了します。")
+        print(f"❌ ディレクトリが存在しません: {target_directory}")
         return
 
-    # lsコマンド風でファイルを自動発見
     target_files = find_files_in_directory(target_directory)
-
     if not target_files:
-        print("⚠️  処理対象ファイルが見つかりませんでした")
+        print("⚠️  処理対象ファイルが見つかりません")
         return
 
-    print(f"\n📁 発見されたファイル: {len(target_files)}個")
+    print(f"📁 発見ファイル: {len(target_files)}個")
 
-    # ファイルをグループ分析（キャッシュ処理前に実行）
-    print(f"\n🔍 ファイルグループ分析中...")
+    # ファイルをグループ分析
     groups = analyze_file_groups(target_files, target_directory)
+    print(f"📂 グループ: {', '.join([f'{k}({len(v)})' for k, v in groups.items()])}")
 
-    print(f"📂 発見されたグループ:")
-    for group_name, group_files in groups.items():
-        print(f"  {group_name}: {len(group_files)} ファイル")
-        for file_info in group_files[:3]:  # 最初の3ファイルを表示
-            print(f"    - {file_info['relative_path']}")
-        if len(group_files) > 3:
-            print(f"    ... および {len(group_files) - 3} 個のファイル")
-
-    # キャッシュの有効性をチェック
-    use_cache = False
-    if os.path.exists(cache_file):
-        if check_cache_validity(target_directory, cache_file):
-            print(f"📦 有効なキャッシュファイルを発見: {cache_file}")
-            use_cache_input = input("キャッシュを使用しますか？ (y/n): ").lower().strip()
-            use_cache = use_cache_input in ['y', 'yes', '']
-        else:
-            print(f"⚠️ キャッシュファイルは古いため、再抽出が必要です")
-
+    # キャッシュ処理
     batch_results = None
-    cached_data = None
+    if os.path.exists(cache_file):
+        file_changes = detect_file_changes(target_directory, cache_file)
 
-    if use_cache:
-        # キャッシュから読み込み
-        print(f"📂 キャッシュから特徴量を読み込み中...")
-        cached_data = load_feature_vectors(cache_file)
-        if cached_data:
-            batch_results = cached_data['data']
-            print(f"✅ キャッシュから {len(batch_results)} ファイルの特徴量を読み込みました")
+        if all(len(file_changes[key]) == 0 for key in ['new_files', 'modified_files', 'deleted_files']):
+            print(f"📦 キャッシュ使用: {cache_file}")
+            cached_data = load_feature_vectors(cache_file)
+            if cached_data:
+                batch_results = cached_data['data']
+        elif len(file_changes['unchanged_files']) > 0:
+            print("🔄 増分更新実行")
+            batch_results = update_cache_incrementally(target_directory, cache_file, file_changes)
+            save_feature_vectors(batch_results, groups, target_directory, cache_file, format='json')
+        else:
+            print("🆕 完全再実行")
 
     if batch_results is None:
-        # 新規抽出
-        for i, file in enumerate(target_files, 1):
-            relative_path = os.path.relpath(file, target_directory)
-            print(f"  {i:2d}. {relative_path}")
-
-        # 複数ファイルの一括処理を実行
-        print(f"\n🔄 複数ファイル一括処理開始")
+        print("🔄 新規特徴量抽出")
         batch_results = batch_extract_integrated_features(target_files)
-
-        # 結果をキャッシュに保存
-        print(f"\n💾 特徴量をキャッシュに保存中...")
         save_feature_vectors(batch_results, groups, target_directory, cache_file, format='json')
 
-        # 新規作成されたキャッシュファイルを読み込んで cached_data を設定
-        cached_data = load_feature_vectors(cache_file)
+    # 結果表示
+    successful = len([r for r in batch_results if 'error' not in r])
+    print(f"📊 結果: {successful}/{len(batch_results)} 成功")
 
-    # 結果を表示
-    print(f"\n📊 一括処理結果:")
-    for i, result in enumerate(batch_results, 1):
-        filename = os.path.basename(result['source_file'])
-        relative_path = os.path.relpath(result['source_file'], target_directory)
-
-        if 'error' in result:
-            print(f"  {i:2d}. ❌ {relative_path}: エラー")
-        else:
-            print(f"  {i:2d}. ✅ {relative_path}: {result['integrated_vector']}")
-
-    # 特徴量分布の可視化
-    print(f"\n🎨 特徴量分布可視化開始...")
+    # 可視化
     try:
         visualize_feature_distribution(batch_results, groups, target_directory)
-    except ImportError as e:
-        print(f"❌ 可視化に必要なライブラリが不足しています: {e}")
-        print("以下のコマンドでインストールしてください:")
-        print("pip install matplotlib scikit-learn numpy")
     except Exception as e:
         print(f"❌ 可視化エラー: {e}")
-
-    # パターン別セントロイド（真のセントロイド）を計算・保存
-    print(f"\n🎯 パターン別セントロイド計算・保存開始...")
-    try:
-        # セントロイド情報がキャッシュファイルに含まれているかチェック
-        if batch_results and cached_data and cached_data.get('pattern_centroids'):
-            print("✅ セントロイド情報はキャッシュファイルに含まれています")
-            centroids_data = cached_data['pattern_centroids']
-
-            # セントロイド概要を表示
-            print(f"\n📈 セントロイド概要（キャッシュから読み込み）:")
-            for pattern_name, centroid_info in centroids_data['centroids'].items():
-                centroid = centroid_info['centroid_vector']
-                count = centroid_info['sample_count']
-                print(f"   {pattern_name} ({count}ファイル):")
-                print(f"     CFG特徴量: [{', '.join([f'{x:.2f}' for x in centroid[:6]])}]")
-                print(f"     データフロー特徴量: [{', '.join([f'{x:.2f}' for x in centroid[6:]])}]")
-        else:
-            # セントロイドを新規計算してキャッシュファイルに追加
-            print("🔄 セントロイド情報をキャッシュファイルに追加中...")
-            centroids_data = calculate_pattern_centroids(batch_results, groups, target_directory)
-
-            if centroids_data and centroids_data['centroids']:
-                # 既存のキャッシュデータを読み込み
-                try:
-                    if os.path.exists(cache_file):
-                        with open(cache_file, 'r', encoding='utf-8') as f:
-                            cache_data = json.load(f)
-                    else:
-                        # キャッシュファイルが存在しない場合は新規作成用データ
-                        cache_data = {
-                            'timestamp': datetime.now().isoformat(),
-                            'total_files': len(batch_results),
-                            'successful_extractions': len([r for r in batch_results if 'error' not in r]),
-                            'feature_names': {
-                                'cfg_features': get_cfg_feature_names(),
-                                'dataflow_features': get_dataflow_feature_names()
-                            },
-                            'data': batch_results
-                        }
-
-                    # セントロイド情報を追加
-                    cache_data['pattern_centroids'] = centroids_data
-
-                    # キャッシュファイルを更新
-                    with open(cache_file, 'w', encoding='utf-8') as f:
-                        json.dump(cache_data, f, indent=2, ensure_ascii=False)
-
-                    print(f"✅ セントロイド情報をキャッシュファイル '{cache_file}' に追加しました")
-                    print(f"   パターン数: {len(centroids_data['centroids'])}個")
-
-                    # セントロイド概要を表示
-                    print(f"\n📈 セントロイド概要:")
-                    for pattern_name, centroid_info in centroids_data['centroids'].items():
-                        centroid = centroid_info['centroid_vector']
-                        count = centroid_info['sample_count']
-                        print(f"   {pattern_name} ({count}ファイル):")
-                        print(f"     CFG特徴量: [{', '.join([f'{x:.2f}' for x in centroid[:6]])}]")
-                        print(f"     データフロー特徴量: [{', '.join([f'{x:.2f}' for x in centroid[6:]])}]")
-
-                except Exception as file_error:
-                    print(f"❌ キャッシュファイル更新エラー: {file_error}")
-                    print("⚠️ セントロイド情報を別ファイルに保存します")
-                    centroid_file = save_pattern_centroids(centroids_data)
-                    if centroid_file:
-                        print(f"✅ セントロイドファイル生成成功: {centroid_file}")
-            else:
-                print("⚠️ 計算可能なパターンセントロイドがありませんでした")
-
-    except Exception as e:
-        print(f"❌ セントロイド計算エラー: {e}")
-
-    # 手動保存オプション
-    save_option = input("\n💾 結果を別ファイルにも保存しますか？ (y/n): ").lower().strip()
-    if save_option in ['y', 'yes']:
-        format_option = input("保存形式を選択してください (json/pickle): ").lower().strip()
-        if format_option in ['json', 'pickle']:
-            save_feature_vectors(batch_results, groups, target_directory, format=format_option)
-        else:
-            print("デフォルトでJSONで保存します")
-            save_feature_vectors(batch_results, groups, target_directory, format='json')
 
 if __name__ == "__main__":
     main()

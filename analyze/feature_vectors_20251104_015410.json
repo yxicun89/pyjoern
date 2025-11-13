@@ -1,0 +1,505 @@
+{
+  "timestamp": "2025-11-04T01:54:10.982307",
+  "total_files": 30,
+  "successful_extractions": 30,
+  "feature_names": {
+    "cfg_features": [
+      "connected_components",
+      "loop_statements",
+      "conditional_statements",
+      "cycles",
+      "paths",
+      "cyclomatic_complexity"
+    ],
+    "dataflow_features": [
+      "total_reads",
+      "total_writes",
+      "max_reads",
+      "max_writes",
+      "var_count"
+    ]
+  },
+  "data": [
+    {
+      "source_file": "../atcoder/submissions_typical90_d_15_AC_TLE/pattern1/submission_1.py",
+      "integrated_vector": [
+        1,
+        5,
+        5,
+        5,
+        18,
+        6,
+        2,
+        3,
+        2,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_d_15_AC_TLE/pattern1/submission_10.py",
+      "integrated_vector": [
+        1,
+        4,
+        4,
+        4,
+        9,
+        5,
+        4,
+        12,
+        4,
+        6,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_d_15_AC_TLE/pattern1/submission_11.py",
+      "integrated_vector": [
+        1,
+        5,
+        5,
+        6,
+        36,
+        7,
+        3,
+        1,
+        3,
+        1,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_d_15_AC_TLE/pattern1/submission_12.py",
+      "integrated_vector": [
+        1,
+        4,
+        4,
+        7,
+        72,
+        8,
+        1,
+        1,
+        0,
+        1,
+        0
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_d_15_AC_TLE/pattern1/submission_13.py",
+      "integrated_vector": [
+        1,
+        4,
+        4,
+        6,
+        36,
+        7,
+        3,
+        4,
+        2,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_d_15_AC_TLE/pattern1/submission_14.py",
+      "integrated_vector": [
+        1,
+        2,
+        2,
+        7,
+        54,
+        8,
+        1,
+        0,
+        1,
+        0,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_d_15_AC_TLE/pattern1/submission_15.py",
+      "integrated_vector": [
+        1,
+        4,
+        4,
+        6,
+        36,
+        7,
+        3,
+        2,
+        2,
+        1,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_d_15_AC_TLE/pattern1/submission_2.py",
+      "integrated_vector": [
+        1,
+        4,
+        4,
+        9,
+        18,
+        13,
+        23,
+        31,
+        18,
+        6,
+        3
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_d_15_AC_TLE/pattern1/submission_3.py",
+      "integrated_vector": [
+        1,
+        4,
+        4,
+        10,
+        432,
+        11,
+        2,
+        3,
+        1,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_d_15_AC_TLE/pattern1/submission_4.py",
+      "integrated_vector": [
+        1,
+        4,
+        4,
+        5,
+        18,
+        6,
+        3,
+        1,
+        3,
+        1,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_d_15_AC_TLE/pattern1/submission_5.py",
+      "integrated_vector": [
+        1,
+        2,
+        2,
+        3,
+        6,
+        4,
+        4,
+        12,
+        3,
+        7,
+        2
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_d_15_AC_TLE/pattern1/submission_6.py",
+      "integrated_vector": [
+        1,
+        6,
+        6,
+        6,
+        36,
+        7,
+        3,
+        1,
+        4,
+        1,
+        2
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_d_15_AC_TLE/pattern1/submission_7.py",
+      "integrated_vector": [
+        1,
+        7,
+        7,
+        7,
+        54,
+        8,
+        4,
+        4,
+        3,
+        1,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_d_15_AC_TLE/pattern1/submission_8.py",
+      "integrated_vector": [
+        1,
+        3,
+        3,
+        7,
+        96,
+        8,
+        8,
+        19,
+        5,
+        4,
+        2
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_d_15_AC_TLE/pattern1/submission_9.py",
+      "integrated_vector": [
+        1,
+        1,
+        1,
+        2,
+        5,
+        4,
+        3,
+        1,
+        2,
+        1,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_d_15_AC_TLE/pattern2/submission_1.py",
+      "integrated_vector": [
+        1,
+        5,
+        5,
+        8,
+        108,
+        9,
+        11,
+        30,
+        8,
+        8,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_d_15_AC_TLE/pattern2/submission_10.py",
+      "integrated_vector": [
+        1,
+        3,
+        3,
+        6,
+        24,
+        7,
+        1,
+        0,
+        1,
+        0,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_d_15_AC_TLE/pattern2/submission_11.py",
+      "integrated_vector": [
+        1,
+        6,
+        6,
+        8,
+        72,
+        9,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_d_15_AC_TLE/pattern2/submission_12.py",
+      "integrated_vector": [
+        1,
+        8,
+        8,
+        10,
+        216,
+        11,
+        6,
+        25,
+        3,
+        12,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_d_15_AC_TLE/pattern2/submission_13.py",
+      "integrated_vector": [
+        1,
+        4,
+        4,
+        7,
+        28,
+        9,
+        10,
+        11,
+        6,
+        3,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_d_15_AC_TLE/pattern2/submission_14.py",
+      "integrated_vector": [
+        1,
+        3,
+        3,
+        5,
+        18,
+        6,
+        11,
+        20,
+        10,
+        7,
+        2
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_d_15_AC_TLE/pattern2/submission_15.py",
+      "integrated_vector": [
+        1,
+        3,
+        3,
+        6,
+        36,
+        7,
+        1,
+        2,
+        1,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_d_15_AC_TLE/pattern2/submission_2.py",
+      "integrated_vector": [
+        1,
+        3,
+        3,
+        7,
+        54,
+        8,
+        6,
+        14,
+        5,
+        7,
+        2
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_d_15_AC_TLE/pattern2/submission_3.py",
+      "integrated_vector": [
+        1,
+        3,
+        3,
+        5,
+        24,
+        6,
+        2,
+        4,
+        1,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_d_15_AC_TLE/pattern2/submission_4.py",
+      "integrated_vector": [
+        1,
+        5,
+        5,
+        5,
+        18,
+        6,
+        3,
+        7,
+        3,
+        4,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_d_15_AC_TLE/pattern2/submission_5.py",
+      "integrated_vector": [
+        1,
+        4,
+        4,
+        5,
+        18,
+        6,
+        3,
+        4,
+        2,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_d_15_AC_TLE/pattern2/submission_6.py",
+      "integrated_vector": [
+        1,
+        3,
+        3,
+        6,
+        24,
+        7,
+        1,
+        1,
+        2,
+        1,
+        2
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_d_15_AC_TLE/pattern2/submission_7.py",
+      "integrated_vector": [
+        1,
+        3,
+        3,
+        3,
+        6,
+        4,
+        10,
+        16,
+        7,
+        6,
+        2
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_d_15_AC_TLE/pattern2/submission_8.py",
+      "integrated_vector": [
+        1,
+        3,
+        3,
+        7,
+        48,
+        8,
+        1,
+        2,
+        0,
+        2,
+        0
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_d_15_AC_TLE/pattern2/submission_9.py",
+      "integrated_vector": [
+        1,
+        1,
+        1,
+        4,
+        12,
+        5,
+        6,
+        10,
+        5,
+        5,
+        2
+      ]
+    }
+  ],
+  "pattern_centroids": null
+}
