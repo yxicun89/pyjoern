@@ -413,14 +413,21 @@ def save_feature_vectors(batch_results, groups=None, base_directory=None, output
 
         # パターン別セントロイドも計算・保存
         if groups is not None and base_directory is not None:
-            centroids_data = calculate_pattern_centroids(batch_results, groups, base_directory)
+            try:
+                print("🎯 セントロイド計算を開始...")
+                centroids_data = calculate_pattern_centroids(batch_results, groups, base_directory)
 
-            if centroids_data and centroids_data['centroids']:
-                save_data['pattern_centroids'] = centroids_data
-                print(f"✅ セントロイド追加: {len(centroids_data['centroids'])}個")
-            else:
+                if centroids_data and centroids_data.get('centroids'):
+                    save_data['pattern_centroids'] = centroids_data
+                    print(f"✅ セントロイド追加: {len(centroids_data['centroids'])}個")
+                else:
+                    print("⚠️ セントロイドデータが空です")
+                    save_data['pattern_centroids'] = None
+            except Exception as e:
+                print(f"❌ セントロイド計算エラー: {e}")
                 save_data['pattern_centroids'] = None
         else:
+            print("ℹ️ グループまたはベースディレクトリが未指定のため、セントロイドをスキップ")
             save_data['pattern_centroids'] = None
 
         if format == 'json':
@@ -500,8 +507,14 @@ def calculate_pattern_centroids(batch_results, groups, base_directory):
         for file_info in group_files:
             file_to_group[file_info['file_path']] = group_name
 
+    # デバッグ: グループの内容を確認
+    print(f"🔍 利用可能グループ: {list(groups.keys())}")
+    for group_name, group_files in groups.items():
+        print(f"   - {group_name}: {len(group_files)}ファイル")
+
     # パターングループのみを対象にする（外れ値otherは除外）
     pattern_groups = {k: v for k, v in groups.items() if k.startswith('pattern')}
+    print(f"🎯 パターングループ: {list(pattern_groups.keys())}")
 
     # 外れ値('other')グループは真のセントロイドに含めない
     if 'other' in groups and len(groups['other']) > 0:
@@ -524,6 +537,11 @@ def calculate_pattern_centroids(batch_results, groups, base_directory):
     }
 
     print(f"🎯 セントロイド計算: {len(pattern_groups)}個の意味あるパターン")
+
+    if len(pattern_groups) == 0:
+        print("⚠️ パターングループが見つかりません。すべてのグループをセントロイド計算対象にします。")
+        pattern_groups = {k: v for k, v in groups.items() if k != 'other'}
+        print(f"📝 更新後パターングループ: {list(pattern_groups.keys())}")
 
     for pattern_name, pattern_files in pattern_groups.items():
         # パターンに属するファイルのインデックスを取得
