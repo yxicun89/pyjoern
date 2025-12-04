@@ -19,6 +19,14 @@ try:
 except ImportError:
     ADVANCED_VIZ_AVAILABLE = False
 
+# ハンガリアンアルゴリズム用のインポート
+try:
+    from scipy.optimize import linear_sum_assignment
+    HUNGARIAN_AVAILABLE = True
+except ImportError:
+    HUNGARIAN_AVAILABLE = False
+    print("⚠️ Warning: scipy not available. Hungarian algorithm will not be used.")
+
 # JSONファイル操作のインポート
 import json
 
@@ -318,6 +326,216 @@ def get_all_patterns_from_paths(file_paths):
         pattern = extract_pattern_from_filepath(filepath)
         patterns.add(pattern)
     return patterns
+
+# --- ハンガリアンアルゴリズムによるクラスタ-パターンマッピング ---
+def create_confusion_matrix(cluster_labels, file_paths):
+    """
+    クラスタとパターンの混同行列を作成
+
+    Args:
+        cluster_labels: クラスターラベルの配列
+        file_paths: ファイルパスのリスト
+
+    Returns:
+        confusion_matrix: 混同行列 (クラスター x パターン)
+        cluster_ids: クラスターIDのリスト
+        pattern_names: パターン名のリスト
+    """
+    # パターンを抽出
+    patterns = [extract_pattern_from_filepath(fp) for fp in file_paths]
+
+    # ユニークなクラスターとパターンを取得
+    unique_clusters = sorted(np.unique(cluster_labels))
+    unique_patterns = sorted(set(patterns))
+
+    # 混同行列を初期化
+    confusion_matrix = np.zeros((len(unique_clusters), len(unique_patterns)), dtype=int)
+
+    # 混同行列を埋める
+    for cluster_label, pattern in zip(cluster_labels, patterns):
+        cluster_idx = unique_clusters.index(cluster_label)
+        pattern_idx = unique_patterns.index(pattern)
+        confusion_matrix[cluster_idx][pattern_idx] += 1
+
+    return confusion_matrix, unique_clusters, unique_patterns
+
+def hungarian_cluster_pattern_assignment(cluster_labels, file_paths):
+    """
+    ハンガリアンアルゴリズムを使用してクラスタとパターンの最適な1対1マッピングを計算
+
+    Args:
+        cluster_labels: クラスターラベルの配列
+        file_paths: ファイルパスのリスト
+
+    Returns:
+        assignment_dict: {cluster_id: pattern_name} の辞書
+        confusion_matrix: 混同行列
+        cluster_ids: クラスターIDのリスト
+        pattern_names: パターン名のリスト
+        assignment_score: 割り当ての総スコア（正確に一致したファイル数）
+    """
+    if not HUNGARIAN_AVAILABLE:
+        print("❌ ハンガリアンアルゴリズムが利用できません。scipyをインストールしてください。")
+        return None, None, None, None, 0
+
+    # 混同行列を作成
+    confusion_matrix, cluster_ids, pattern_names = create_confusion_matrix(cluster_labels, file_paths)
+
+    # ハンガリアンアルゴリズムのためのコスト行列を作成
+    # 最大化問題なので負の値を使用
+    cost_matrix = -confusion_matrix
+
+    # クラスター数がパターン数より多い場合は、余分なクラスターを処理
+    if len(cluster_ids) != len(pattern_names):
+        min_size = min(len(cluster_ids), len(pattern_names))
+        max_size = max(len(cluster_ids), len(pattern_names))
+
+        if len(cluster_ids) > len(pattern_names):
+            # クラスター数 > パターン数の場合、ダミーパターンを追加
+            extended_cost_matrix = np.zeros((len(cluster_ids), len(cluster_ids)))
+            extended_cost_matrix[:len(cluster_ids), :len(pattern_names)] = cost_matrix
+            cost_matrix = extended_cost_matrix
+            # ダミーパターン名を追加
+            extended_pattern_names = pattern_names + [f"dummy_{i}" for i in range(len(cluster_ids) - len(pattern_names))]
+        else:
+            # パターン数 > クラスター数の場合、ダミークラスターを追加
+            extended_cost_matrix = np.zeros((len(pattern_names), len(pattern_names)))
+            extended_cost_matrix[:len(cluster_ids), :len(pattern_names)] = cost_matrix
+            cost_matrix = extended_cost_matrix
+            extended_pattern_names = pattern_names
+            # ダミークラスターIDを追加
+            cluster_ids = cluster_ids + [f"dummy_{i}" for i in range(len(pattern_names) - len(cluster_ids))]
+    else:
+        extended_pattern_names = pattern_names
+
+    # ハンガリアンアルゴリズムを実行
+    row_indices, col_indices = linear_sum_assignment(cost_matrix)
+
+    # 割り当て結果を辞書に変換
+    assignment_dict = {}
+    assignment_score = 0
+
+    for row_idx, col_idx in zip(row_indices, col_indices):
+        if row_idx < len(cluster_ids) and col_idx < len(extended_pattern_names):
+            cluster_id = cluster_ids[row_idx]
+            pattern_name = extended_pattern_names[col_idx]
+
+            # ダミーでない場合のみ割り当てに追加
+            if not str(cluster_id).startswith('dummy') and not pattern_name.startswith('dummy'):
+                assignment_dict[cluster_id] = pattern_name
+                # スコアを計算（元の混同行列から）
+                if row_idx < confusion_matrix.shape[0] and col_idx < confusion_matrix.shape[1]:
+                    assignment_score += confusion_matrix[row_idx][col_idx]
+
+    return assignment_dict, confusion_matrix, cluster_ids, pattern_names, assignment_score
+
+def calculate_precision_recall_f1(assignment_dict, confusion_matrix, cluster_ids, pattern_names, cluster_labels, file_paths):
+    """
+    ハンガリアンアルゴリズムの結果に基づいて適合率、再現率、F1スコアを計算
+
+    Args:
+        assignment_dict: クラスタ-パターン割り当て辞書
+        confusion_matrix: 混同行列
+        cluster_ids: クラスターIDのリスト
+        pattern_names: パターン名のリスト
+        cluster_labels: クラスターラベルの配列
+        file_paths: ファイルパスのリスト
+
+    Returns:
+        metrics_dict: 各クラスタの評価指標を含む辞書
+        overall_metrics: 全体の評価指標
+    """
+    metrics_dict = {}
+    overall_metrics = {
+        'macro_precision': 0.0,
+        'macro_recall': 0.0,
+        'macro_f1': 0.0,
+        'weighted_precision': 0.0,
+        'weighted_recall': 0.0,
+        'weighted_f1': 0.0,
+        'total_files': len(file_paths),
+        'correctly_assigned': 0,
+        'accuracy': 0.0
+    }
+
+    # 各パターンの総ファイル数を計算
+    patterns = [extract_pattern_from_filepath(fp) for fp in file_paths]
+    pattern_totals = {}
+    for pattern in pattern_names:
+        pattern_totals[pattern] = patterns.count(pattern)
+
+    valid_clusters = []
+    precision_scores = []
+    recall_scores = []
+    f1_scores = []
+    cluster_sizes = []
+
+    total_correctly_assigned = 0
+
+    # 各クラスタについて計算
+    for cluster_id in cluster_ids:
+        if cluster_id in assignment_dict:
+            assigned_pattern = assignment_dict[cluster_id]
+            cluster_idx = cluster_ids.index(cluster_id)
+            pattern_idx = pattern_names.index(assigned_pattern)
+
+            # True Positive: クラスタ内で正しくパターンが割り当てられたファイル数
+            tp = confusion_matrix[cluster_idx][pattern_idx]
+
+            # False Positive: クラスタ内で間違ったパターンのファイル数
+            cluster_total = np.sum(confusion_matrix[cluster_idx, :])
+            fp = cluster_total - tp
+
+            # False Negative: 他のクラスタに分類されてしまった正解パターンのファイル数
+            pattern_total = pattern_totals[assigned_pattern]
+            fn = pattern_total - tp
+
+            # 適合率（Precision）: そのクラスタの中でどれだけ正解カテゴリを含めているかの割合
+            precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+
+            # 再現率（Recall）: 正解カテゴリのファイル数に対して正しく分類したファイル数の割合
+            recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+
+            # F1スコア: 適合率と再現率の調和平均
+            f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
+
+            metrics_dict[cluster_id] = {
+                'assigned_pattern': assigned_pattern,
+                'tp': tp,
+                'fp': fp,
+                'fn': fn,
+                'precision': precision,
+                'recall': recall,
+                'f1': f1,
+                'cluster_size': cluster_total,
+                'pattern_total': pattern_total
+            }
+
+            valid_clusters.append(cluster_id)
+            precision_scores.append(precision)
+            recall_scores.append(recall)
+            f1_scores.append(f1)
+            cluster_sizes.append(cluster_total)
+            total_correctly_assigned += tp
+
+    # 全体の指標を計算
+    if valid_clusters:
+        # マクロ平均（各クラスタを等しく重み付け）
+        overall_metrics['macro_precision'] = np.mean(precision_scores)
+        overall_metrics['macro_recall'] = np.mean(recall_scores)
+        overall_metrics['macro_f1'] = np.mean(f1_scores)
+
+        # 重み付き平均（クラスタサイズで重み付け）
+        total_cluster_sizes = sum(cluster_sizes)
+        if total_cluster_sizes > 0:
+            overall_metrics['weighted_precision'] = np.average(precision_scores, weights=cluster_sizes)
+            overall_metrics['weighted_recall'] = np.average(recall_scores, weights=cluster_sizes)
+            overall_metrics['weighted_f1'] = np.average(f1_scores, weights=cluster_sizes)
+
+    overall_metrics['correctly_assigned'] = total_correctly_assigned
+    overall_metrics['accuracy'] = total_correctly_assigned / len(file_paths) if len(file_paths) > 0 else 0.0
+
+    return metrics_dict, overall_metrics
 
 # --- クラスタリング結果を保存 ---
 def save_clustering_results(final_labels, C_final, true_centers, file_names, file_paths,
@@ -640,6 +858,27 @@ def display_clustering_results(final_labels, C_final, file_names=None, dataset_n
     unique_labels = np.unique(final_labels)
     print(f"総クラスター数: {len(unique_labels)} | 総サンプル数: {len(final_labels)}")
 
+    # ハンガリアンアルゴリズムによる最適割り当てを実行
+    hungarian_results = None
+    if file_paths is not None and HUNGARIAN_AVAILABLE:
+        try:
+            assignment_dict, confusion_matrix, cluster_ids, pattern_names, assignment_score = hungarian_cluster_pattern_assignment(final_labels, file_paths)
+            if assignment_dict is not None:
+                metrics_dict, overall_metrics = calculate_precision_recall_f1(
+                    assignment_dict, confusion_matrix, cluster_ids, pattern_names, final_labels, file_paths
+                )
+                hungarian_results = {
+                    'assignment': assignment_dict,
+                    'confusion_matrix': confusion_matrix,
+                    'cluster_ids': cluster_ids,
+                    'pattern_names': pattern_names,
+                    'assignment_score': assignment_score,
+                    'metrics': metrics_dict,
+                    'overall': overall_metrics
+                }
+        except Exception as e:
+            print(f"⚠️ ハンガリアンアルゴリズム実行エラー: {e}")
+
     # エラー指数の集計用リスト
     cluster_error_indices = []
     cluster_error_summary = []
@@ -648,7 +887,16 @@ def display_clustering_results(final_labels, C_final, file_names=None, dataset_n
         cluster_indices = np.where(final_labels == cluster_id)[0]
         cluster_size = len(cluster_indices)
 
-        print(f"\n🏷️ Cluster {cluster_id} ({cluster_size} ファイル):")
+        # ハンガリアン割り当て結果を取得
+        assigned_pattern_info = ""
+        cluster_metrics = None
+        if hungarian_results and cluster_id in hungarian_results['assignment']:
+            assigned_pattern = hungarian_results['assignment'][cluster_id]
+            assigned_pattern_info = f" → 🎯 {assigned_pattern}"
+            if cluster_id in hungarian_results['metrics']:
+                cluster_metrics = hungarian_results['metrics'][cluster_id]
+
+        print(f"\n🏷️ Cluster {cluster_id} ({cluster_size} ファイル){assigned_pattern_info}:")
 
         if file_names and file_paths:
             # ファイル名でソート
@@ -695,6 +943,11 @@ def display_clustering_results(final_labels, C_final, file_names=None, dataset_n
 
                 print(f"   🎯 エラー指数: {error_index:.4f} (最多: {most_common_pattern[0]} = {most_common_pattern[1]}ファイル)")
 
+                # ハンガリアン評価指標を表示
+                if cluster_metrics:
+                    print(f"   📈 適合率: {cluster_metrics['precision']:.4f} | 再現率: {cluster_metrics['recall']:.4f} | F1: {cluster_metrics['f1']:.4f}")
+                    print(f"   📊 TP: {cluster_metrics['tp']}, FP: {cluster_metrics['fp']}, FN: {cluster_metrics['fn']}")
+
                 # エラー指数を集計リストに追加
                 cluster_error_indices.append(error_index)
                 cluster_error_summary.append({
@@ -733,6 +986,37 @@ def display_clustering_results(final_labels, C_final, file_names=None, dataset_n
 
         print(f"⚠️ 最悪クラスター: Cluster {worst_cluster['cluster_id']} (エラー指数: {worst_cluster['error_index']:.4f})")
         print(f"   最多パターン: {worst_cluster['most_common_pattern']} ({worst_cluster['most_common_count']}/{worst_cluster['total_files']}ファイル)")
+
+    # ハンガリアンアルゴリズム全体評価を表示
+    if hungarian_results:
+        print("\n" + "=" * 80)
+        print("🎯 ハンガリアンアルゴリズム最適割り当て評価")
+        print("=" * 80)
+
+        overall = hungarian_results['overall']
+        print(f"📊 全体精度: {overall['accuracy']:.4f} ({overall['correctly_assigned']}/{overall['total_files']} ファイル)")
+        print(f"📈 マクロ平均 - 適合率: {overall['macro_precision']:.4f} | 再現率: {overall['macro_recall']:.4f} | F1: {overall['macro_f1']:.4f}")
+        print(f"📊 重み付き平均 - 適合率: {overall['weighted_precision']:.4f} | 再現率: {overall['weighted_recall']:.4f} | F1: {overall['weighted_f1']:.4f}")
+
+        print(f"\n🔗 最適割り当て:")
+        for cluster_id, pattern in sorted(hungarian_results['assignment'].items()):
+            metrics = hungarian_results['metrics'].get(cluster_id, {})
+            f1_score = metrics.get('f1', 0.0)
+            print(f"   Cluster {cluster_id} → {pattern} (F1: {f1_score:.4f})")
+
+        print(f"\n📋 混同行列:")
+        confusion_matrix = hungarian_results['confusion_matrix']
+        cluster_ids = hungarian_results['cluster_ids']
+        pattern_names = hungarian_results['pattern_names']
+
+        # ヘッダー行を表示
+        header = "        " + " ".join([f"{p:>6}" for p in pattern_names])
+        print(header)
+
+        # 各行を表示
+        for i, cluster_id in enumerate(cluster_ids):
+            row_values = " ".join([f"{confusion_matrix[i][j]:>6}" for j in range(len(pattern_names))])
+            print(f"Cluster {cluster_id:>2} {row_values}")
 
     print("=" * 80)
 
