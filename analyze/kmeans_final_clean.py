@@ -640,6 +640,10 @@ def display_clustering_results(final_labels, C_final, file_names=None, dataset_n
     unique_labels = np.unique(final_labels)
     print(f"総クラスター数: {len(unique_labels)} | 総サンプル数: {len(final_labels)}")
 
+    # エラー指数の集計用リスト
+    cluster_error_indices = []
+    cluster_error_summary = []
+
     for cluster_id in unique_labels:
         cluster_indices = np.where(final_labels == cluster_id)[0]
         cluster_size = len(cluster_indices)
@@ -679,11 +683,56 @@ def display_clustering_results(final_labels, C_final, file_names=None, dataset_n
                 percentage_info = ", ".join(percentage_details)
                 print(f"   📊 パーセンテージ: {percentage_info}")
 
-            # ファイル一覧を表示（全ファイル詳細表示）
+                # エラー指数の計算
+                # エラー指数 = (分類した総ファイル数 - その分類の中で最多パターンのファイル数) / 分類した総ファイル数
+                n_total = cluster_size  # 分類した総ファイル数（クラスター内の総ファイル数）
+                n_max = max(pattern_counts.values())  # その分類の中で最多パターンのファイル数
+                most_common_pattern = max(pattern_counts.items(), key=lambda x: x[1])  # 最多パターン
+
+                # エラー指数計算: (n_total - n_max) / n_total
+                # 0に近いほど同一パターンが集中、1に近いほど異なるパターンが混在
+                error_index = (n_total - n_max) / n_total if n_total > 0 else 0.0
+
+                print(f"   🎯 エラー指数: {error_index:.4f} (最多: {most_common_pattern[0]} = {most_common_pattern[1]}ファイル)")
+
+                # エラー指数を集計リストに追加
+                cluster_error_indices.append(error_index)
+                cluster_error_summary.append({
+                    'cluster_id': cluster_id,
+                    'error_index': error_index,
+                    'most_common_pattern': most_common_pattern[0],
+                    'most_common_count': most_common_pattern[1],
+                    'total_files': n_total
+                })            # ファイル一覧を表示（全ファイル詳細表示）
             print(f"   📄 ファイル一覧:")
             for i, data in enumerate(cluster_data, 1):
                 pattern_mark = "⚠️" if data['pattern'] == 'other' else ""
                 print(f"       {i:2d}. {data['filename']:<25} ({data['pattern']}){pattern_mark}")
+
+    # エラー指数の全体サマリーを表示
+    if cluster_error_indices:
+        print("\n" + "=" * 80)
+        print("📊 エラー指数サマリー")
+        print("=" * 80)
+
+        # 統計情報
+        avg_error_index = np.mean(cluster_error_indices)
+        min_error_index = np.min(cluster_error_indices)
+        max_error_index = np.max(cluster_error_indices)
+
+        print(f"📈 平均エラー指数: {avg_error_index:.4f}")
+        print(f"📉 最小エラー指数: {min_error_index:.4f}")
+        print(f"📊 最大エラー指数: {max_error_index:.4f}")
+
+        # 最良・最悪クラスターの詳細
+        best_cluster = min(cluster_error_summary, key=lambda x: x['error_index'])
+        worst_cluster = max(cluster_error_summary, key=lambda x: x['error_index'])
+
+        print(f"\n🏆 最良クラスター: Cluster {best_cluster['cluster_id']} (エラー指数: {best_cluster['error_index']:.4f})")
+        print(f"   最多パターン: {best_cluster['most_common_pattern']} ({best_cluster['most_common_count']}/{best_cluster['total_files']}ファイル)")
+
+        print(f"⚠️ 最悪クラスター: Cluster {worst_cluster['cluster_id']} (エラー指数: {worst_cluster['error_index']:.4f})")
+        print(f"   最多パターン: {worst_cluster['most_common_pattern']} ({worst_cluster['most_common_count']}/{worst_cluster['total_files']}ファイル)")
 
     print("=" * 80)
 
@@ -917,9 +966,7 @@ def visualize_clustering_results(X, y_true, final_labels, C_final, true_centers,
                    alpha=alpha_val, s=point_size, edgecolors='black', linewidth=0.5)
         plt.title(f"{algo_title} Results ({method_name})", fontsize=12)
 
-        # セントロイドをプロット
-        plt.scatter(C_final_2d[:, 0], C_final_2d[:, 1],
-                   c='red', s=250, marker='X', edgecolor='black', linewidth=2, alpha=1.0)
+        # セントロイドは表示しない
 
         # クラスター統計を凡例として表示
         unique_clusters = np.unique(final_labels)
@@ -929,9 +976,6 @@ def visualize_clustering_results(X, y_true, final_labels, C_final, true_centers,
             legend_elements.append(plt.Line2D([0], [0], marker='o', color='w',
                                             markerfacecolor=cm.get_cmap('tab10')(cluster_id / 10.0), markersize=8,
                                             label=f'C{cluster_id} ({cluster_count})'))
-        legend_elements.append(plt.Line2D([0], [0], marker='X', color='w',
-                                        markerfacecolor='red', markersize=12, markeredgecolor='black',
-                                        label='Centroids'))
         plt.legend(handles=legend_elements, loc='upper right', fontsize=9)
 
         plt.xlabel(f"{method_name} Component 1" if n_features > 2 else "Feature 1")

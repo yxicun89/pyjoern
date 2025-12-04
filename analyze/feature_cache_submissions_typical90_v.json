@@ -1,0 +1,2097 @@
+{
+  "timestamp": "2025-12-04T01:27:49.999905",
+  "total_files": 92,
+  "successful_extractions": 92,
+  "feature_names": {
+    "cfg_features": [
+      "connected_components",
+      "loop_statements",
+      "conditional_statements",
+      "cycles",
+      "paths",
+      "cyclomatic_complexity"
+    ],
+    "dataflow_features": [
+      "total_reads",
+      "total_writes",
+      "max_reads",
+      "max_writes",
+      "var_count"
+    ]
+  },
+  "file_metadata": {
+    "../atcoder/submissions_typical90_v/pattern1/submission_17.py": {
+      "mtime": 1763894021.8181896,
+      "size": 205,
+      "timestamp": "2025-11-23T19:33:41.818190"
+    },
+    "../atcoder/submissions_typical90_v/pattern1/submission_39.py": {
+      "mtime": 1763894021.8196929,
+      "size": 218,
+      "timestamp": "2025-11-23T19:33:41.819693"
+    },
+    "../atcoder/submissions_typical90_v/pattern1/submission_63.py": {
+      "mtime": 1763894021.8206992,
+      "size": 786,
+      "timestamp": "2025-11-23T19:33:41.820699"
+    },
+    "../atcoder/submissions_typical90_v/pattern1/submission_87.py": {
+      "mtime": 1763894021.8217006,
+      "size": 371,
+      "timestamp": "2025-11-23T19:33:41.821701"
+    },
+    "../atcoder/submissions_typical90_v/pattern1/submission_92.py": {
+      "mtime": 1763894021.8227081,
+      "size": 441,
+      "timestamp": "2025-11-23T19:33:41.822708"
+    },
+    "../atcoder/submissions_typical90_v/pattern2/submission_16.py": {
+      "mtime": 1763894021.8237095,
+      "size": 275,
+      "timestamp": "2025-11-23T19:33:41.823709"
+    },
+    "../atcoder/submissions_typical90_v/pattern2/submission_29.py": {
+      "mtime": 1763894021.8247075,
+      "size": 144,
+      "timestamp": "2025-11-23T19:33:41.824708"
+    },
+    "../atcoder/submissions_typical90_v/pattern2/submission_35.py": {
+      "mtime": 1763894021.827708,
+      "size": 183,
+      "timestamp": "2025-11-23T19:33:41.827708"
+    },
+    "../atcoder/submissions_typical90_v/pattern2/submission_41.py": {
+      "mtime": 1763894021.8292143,
+      "size": 247,
+      "timestamp": "2025-11-23T19:33:41.829214"
+    },
+    "../atcoder/submissions_typical90_v/pattern2/submission_43.py": {
+      "mtime": 1763894021.8292143,
+      "size": 250,
+      "timestamp": "2025-11-23T19:33:41.829214"
+    },
+    "../atcoder/submissions_typical90_v/pattern2/submission_5.py": {
+      "mtime": 1763894021.830222,
+      "size": 204,
+      "timestamp": "2025-11-23T19:33:41.830222"
+    },
+    "../atcoder/submissions_typical90_v/pattern2/submission_50.py": {
+      "mtime": 1763894021.831223,
+      "size": 321,
+      "timestamp": "2025-11-23T19:33:41.831223"
+    },
+    "../atcoder/submissions_typical90_v/pattern2/submission_55.py": {
+      "mtime": 1763894021.8322291,
+      "size": 304,
+      "timestamp": "2025-11-23T19:33:41.832229"
+    },
+    "../atcoder/submissions_typical90_v/pattern2/submission_6.py": {
+      "mtime": 1763894021.8332288,
+      "size": 264,
+      "timestamp": "2025-11-23T19:33:41.833229"
+    },
+    "../atcoder/submissions_typical90_v/pattern2/submission_65.py": {
+      "mtime": 1763894021.8332288,
+      "size": 120,
+      "timestamp": "2025-11-23T19:33:41.833229"
+    },
+    "../atcoder/submissions_typical90_v/pattern2/submission_67.py": {
+      "mtime": 1763894021.8352296,
+      "size": 297,
+      "timestamp": "2025-11-23T19:33:41.835230"
+    },
+    "../atcoder/submissions_typical90_v/pattern2/submission_81.py": {
+      "mtime": 1763894021.8352296,
+      "size": 360,
+      "timestamp": "2025-11-23T19:33:41.835230"
+    },
+    "../atcoder/submissions_typical90_v/pattern2/submission_82.py": {
+      "mtime": 1763894021.8362286,
+      "size": 182,
+      "timestamp": "2025-11-23T19:33:41.836229"
+    },
+    "../atcoder/submissions_typical90_v/pattern3/submission_10.py": {
+      "mtime": 1763894021.8826375,
+      "size": 103,
+      "timestamp": "2025-11-23T19:33:41.882638"
+    },
+    "../atcoder/submissions_typical90_v/pattern3/submission_12.py": {
+      "mtime": 1763894021.883638,
+      "size": 88,
+      "timestamp": "2025-11-23T19:33:41.883638"
+    },
+    "../atcoder/submissions_typical90_v/pattern3/submission_18.py": {
+      "mtime": 1763894021.885637,
+      "size": 91,
+      "timestamp": "2025-11-23T19:33:41.885637"
+    },
+    "../atcoder/submissions_typical90_v/pattern3/submission_20.py": {
+      "mtime": 1763894021.8866372,
+      "size": 193,
+      "timestamp": "2025-11-23T19:33:41.886637"
+    },
+    "../atcoder/submissions_typical90_v/pattern3/submission_23.py": {
+      "mtime": 1763894021.8876388,
+      "size": 577,
+      "timestamp": "2025-11-23T19:33:41.887639"
+    },
+    "../atcoder/submissions_typical90_v/pattern3/submission_28.py": {
+      "mtime": 1763894021.8891447,
+      "size": 206,
+      "timestamp": "2025-11-23T19:33:41.889145"
+    },
+    "../atcoder/submissions_typical90_v/pattern3/submission_3.py": {
+      "mtime": 1763894021.8901532,
+      "size": 197,
+      "timestamp": "2025-11-23T19:33:41.890153"
+    },
+    "../atcoder/submissions_typical90_v/pattern3/submission_31.py": {
+      "mtime": 1763894021.8911521,
+      "size": 134,
+      "timestamp": "2025-11-23T19:33:41.891152"
+    },
+    "../atcoder/submissions_typical90_v/pattern3/submission_40.py": {
+      "mtime": 1763894021.8921576,
+      "size": 104,
+      "timestamp": "2025-11-23T19:33:41.892158"
+    },
+    "../atcoder/submissions_typical90_v/pattern3/submission_47.py": {
+      "mtime": 1763894021.8921576,
+      "size": 90,
+      "timestamp": "2025-11-23T19:33:41.892158"
+    },
+    "../atcoder/submissions_typical90_v/pattern3/submission_48.py": {
+      "mtime": 1763894021.8931592,
+      "size": 92,
+      "timestamp": "2025-11-23T19:33:41.893159"
+    },
+    "../atcoder/submissions_typical90_v/pattern3/submission_49.py": {
+      "mtime": 1763894021.8951576,
+      "size": 313,
+      "timestamp": "2025-11-23T19:33:41.895158"
+    },
+    "../atcoder/submissions_typical90_v/pattern3/submission_52.py": {
+      "mtime": 1763894021.8951576,
+      "size": 93,
+      "timestamp": "2025-11-23T19:33:41.895158"
+    },
+    "../atcoder/submissions_typical90_v/pattern3/submission_54.py": {
+      "mtime": 1763894021.8961606,
+      "size": 185,
+      "timestamp": "2025-11-23T19:33:41.896161"
+    },
+    "../atcoder/submissions_typical90_v/pattern3/submission_56.py": {
+      "mtime": 1763894021.8981586,
+      "size": 121,
+      "timestamp": "2025-11-23T19:33:41.898159"
+    },
+    "../atcoder/submissions_typical90_v/pattern3/submission_57.py": {
+      "mtime": 1763894021.8981586,
+      "size": 84,
+      "timestamp": "2025-11-23T19:33:41.898159"
+    },
+    "../atcoder/submissions_typical90_v/pattern3/submission_58.py": {
+      "mtime": 1763894021.8996646,
+      "size": 100,
+      "timestamp": "2025-11-23T19:33:41.899665"
+    },
+    "../atcoder/submissions_typical90_v/pattern3/submission_60.py": {
+      "mtime": 1763894021.9016788,
+      "size": 162,
+      "timestamp": "2025-11-23T19:33:41.901679"
+    },
+    "../atcoder/submissions_typical90_v/pattern3/submission_61.py": {
+      "mtime": 1763894021.90368,
+      "size": 147,
+      "timestamp": "2025-11-23T19:33:41.903680"
+    },
+    "../atcoder/submissions_typical90_v/pattern3/submission_62.py": {
+      "mtime": 1763894021.90468,
+      "size": 147,
+      "timestamp": "2025-11-23T19:33:41.904680"
+    },
+    "../atcoder/submissions_typical90_v/pattern3/submission_75.py": {
+      "mtime": 1763894021.905681,
+      "size": 165,
+      "timestamp": "2025-11-23T19:33:41.905681"
+    },
+    "../atcoder/submissions_typical90_v/pattern3/submission_76.py": {
+      "mtime": 1763894021.9066808,
+      "size": 344,
+      "timestamp": "2025-11-23T19:33:41.906681"
+    },
+    "../atcoder/submissions_typical90_v/pattern3/submission_78.py": {
+      "mtime": 1763894021.9076796,
+      "size": 361,
+      "timestamp": "2025-11-23T19:33:41.907680"
+    },
+    "../atcoder/submissions_typical90_v/pattern3/submission_8.py": {
+      "mtime": 1763894021.9091861,
+      "size": 561,
+      "timestamp": "2025-11-23T19:33:41.909186"
+    },
+    "../atcoder/submissions_typical90_v/pattern3/submission_80.py": {
+      "mtime": 1763894021.9101934,
+      "size": 191,
+      "timestamp": "2025-11-23T19:33:41.910193"
+    },
+    "../atcoder/submissions_typical90_v/pattern3/submission_88.py": {
+      "mtime": 1763894021.9111943,
+      "size": 118,
+      "timestamp": "2025-11-23T19:33:41.911194"
+    },
+    "../atcoder/submissions_typical90_v/pattern3/submission_9.py": {
+      "mtime": 1763894021.9122014,
+      "size": 99,
+      "timestamp": "2025-11-23T19:33:41.912201"
+    },
+    "../atcoder/submissions_typical90_v/pattern3/submission_91.py": {
+      "mtime": 1763894021.9122014,
+      "size": 113,
+      "timestamp": "2025-11-23T19:33:41.912201"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_1.py": {
+      "mtime": 1763894021.8382294,
+      "size": 163,
+      "timestamp": "2025-11-23T19:33:41.838229"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_100.py": {
+      "mtime": 1763894021.839231,
+      "size": 151,
+      "timestamp": "2025-11-23T19:33:41.839231"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_11.py": {
+      "mtime": 1763894021.8407443,
+      "size": 235,
+      "timestamp": "2025-11-23T19:33:41.840744"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_13.py": {
+      "mtime": 1763894021.8417506,
+      "size": 297,
+      "timestamp": "2025-11-23T19:33:41.841751"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_14.py": {
+      "mtime": 1763894021.842751,
+      "size": 162,
+      "timestamp": "2025-11-23T19:33:41.842751"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_15.py": {
+      "mtime": 1763894021.8437512,
+      "size": 247,
+      "timestamp": "2025-11-23T19:33:41.843751"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_19.py": {
+      "mtime": 1763894021.844751,
+      "size": 141,
+      "timestamp": "2025-11-23T19:33:41.844751"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_2.py": {
+      "mtime": 1763894021.8457494,
+      "size": 121,
+      "timestamp": "2025-11-23T19:33:41.845749"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_21.py": {
+      "mtime": 1763894021.8467505,
+      "size": 157,
+      "timestamp": "2025-11-23T19:33:41.846750"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_22.py": {
+      "mtime": 1763894021.847751,
+      "size": 210,
+      "timestamp": "2025-11-23T19:33:41.847751"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_24.py": {
+      "mtime": 1763894021.8482566,
+      "size": 182,
+      "timestamp": "2025-11-23T19:33:41.848257"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_25.py": {
+      "mtime": 1763894021.8492627,
+      "size": 97,
+      "timestamp": "2025-11-23T19:33:41.849263"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_27.py": {
+      "mtime": 1763894021.8492627,
+      "size": 139,
+      "timestamp": "2025-11-23T19:33:41.849263"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_30.py": {
+      "mtime": 1763894021.8502693,
+      "size": 203,
+      "timestamp": "2025-11-23T19:33:41.850269"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_34.py": {
+      "mtime": 1763894021.8512702,
+      "size": 142,
+      "timestamp": "2025-11-23T19:33:41.851270"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_36.py": {
+      "mtime": 1763894021.8522768,
+      "size": 321,
+      "timestamp": "2025-11-23T19:33:41.852277"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_37.py": {
+      "mtime": 1763894021.853276,
+      "size": 500,
+      "timestamp": "2025-11-23T19:33:41.853276"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_4.py": {
+      "mtime": 1763894021.8542767,
+      "size": 850,
+      "timestamp": "2025-11-23T19:33:41.854277"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_42.py": {
+      "mtime": 1763894021.8552766,
+      "size": 114,
+      "timestamp": "2025-11-23T19:33:41.855277"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_44.py": {
+      "mtime": 1763894021.8562756,
+      "size": 110,
+      "timestamp": "2025-11-23T19:33:41.856276"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_45.py": {
+      "mtime": 1763894021.8572767,
+      "size": 149,
+      "timestamp": "2025-11-23T19:33:41.857277"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_51.py": {
+      "mtime": 1763894021.8582766,
+      "size": 198,
+      "timestamp": "2025-11-23T19:33:41.858277"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_53.py": {
+      "mtime": 1763894021.8592756,
+      "size": 156,
+      "timestamp": "2025-11-23T19:33:41.859276"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_59.py": {
+      "mtime": 1763894021.8597806,
+      "size": 130,
+      "timestamp": "2025-11-23T19:33:41.859781"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_64.py": {
+      "mtime": 1763894021.860787,
+      "size": 217,
+      "timestamp": "2025-11-23T19:33:41.860787"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_66.py": {
+      "mtime": 1763894021.8617945,
+      "size": 451,
+      "timestamp": "2025-11-23T19:33:41.861794"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_68.py": {
+      "mtime": 1763894021.8627949,
+      "size": 123,
+      "timestamp": "2025-11-23T19:33:41.862795"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_69.py": {
+      "mtime": 1763894021.863795,
+      "size": 151,
+      "timestamp": "2025-11-23T19:33:41.863795"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_7.py": {
+      "mtime": 1763894021.8647943,
+      "size": 113,
+      "timestamp": "2025-11-23T19:33:41.864794"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_70.py": {
+      "mtime": 1763894021.8647943,
+      "size": 443,
+      "timestamp": "2025-11-23T19:33:41.864794"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_71.py": {
+      "mtime": 1763894021.8657947,
+      "size": 279,
+      "timestamp": "2025-11-23T19:33:41.865795"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_72.py": {
+      "mtime": 1763894021.8667953,
+      "size": 140,
+      "timestamp": "2025-11-23T19:33:41.866795"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_73.py": {
+      "mtime": 1763894021.8677943,
+      "size": 245,
+      "timestamp": "2025-11-23T19:33:41.867794"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_74.py": {
+      "mtime": 1763894021.8693006,
+      "size": 363,
+      "timestamp": "2025-11-23T19:33:41.869301"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_77.py": {
+      "mtime": 1763894021.8703094,
+      "size": 210,
+      "timestamp": "2025-11-23T19:33:41.870309"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_83.py": {
+      "mtime": 1763894021.8713083,
+      "size": 336,
+      "timestamp": "2025-11-23T19:33:41.871308"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_84.py": {
+      "mtime": 1763894021.8723083,
+      "size": 119,
+      "timestamp": "2025-11-23T19:33:41.872308"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_86.py": {
+      "mtime": 1763894021.873309,
+      "size": 190,
+      "timestamp": "2025-11-23T19:33:41.873309"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_89.py": {
+      "mtime": 1763894021.8743114,
+      "size": 105,
+      "timestamp": "2025-11-23T19:33:41.874311"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_90.py": {
+      "mtime": 1763894021.8753078,
+      "size": 192,
+      "timestamp": "2025-11-23T19:33:41.875308"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_93.py": {
+      "mtime": 1763894021.8763096,
+      "size": 138,
+      "timestamp": "2025-11-23T19:33:41.876310"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_94.py": {
+      "mtime": 1763894021.877309,
+      "size": 342,
+      "timestamp": "2025-11-23T19:33:41.877309"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_95.py": {
+      "mtime": 1763894021.8783085,
+      "size": 227,
+      "timestamp": "2025-11-23T19:33:41.878309"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_96.py": {
+      "mtime": 1763894021.879309,
+      "size": 165,
+      "timestamp": "2025-11-23T19:33:41.879309"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_98.py": {
+      "mtime": 1763894021.8816376,
+      "size": 126,
+      "timestamp": "2025-11-23T19:33:41.881638"
+    },
+    "../atcoder/submissions_typical90_v/pattern4/submission_99.py": {
+      "mtime": 1763894021.8816376,
+      "size": 174,
+      "timestamp": "2025-11-23T19:33:41.881638"
+    }
+  },
+  "data": [
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern1/submission_17.py",
+      "integrated_vector": [
+        1,
+        1,
+        2,
+        2,
+        13,
+        5,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern1/submission_39.py",
+      "integrated_vector": [
+        1,
+        1,
+        1,
+        2,
+        6,
+        3,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern1/submission_63.py",
+      "integrated_vector": [
+        1,
+        1,
+        1,
+        128,
+        11094,
+        12,
+        8,
+        25,
+        6,
+        18,
+        4
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern1/submission_87.py",
+      "integrated_vector": [
+        1,
+        1,
+        3,
+        2,
+        20,
+        6,
+        2,
+        6,
+        4,
+        5,
+        3
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern1/submission_92.py",
+      "integrated_vector": [
+        1,
+        1,
+        2,
+        2,
+        24,
+        5,
+        2,
+        11,
+        1,
+        6,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern2/submission_16.py",
+      "integrated_vector": [
+        1,
+        0,
+        1,
+        0,
+        4,
+        3,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern2/submission_29.py",
+      "integrated_vector": [
+        1,
+        1,
+        2,
+        2,
+        3,
+        3,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern2/submission_35.py",
+      "integrated_vector": [
+        1,
+        1,
+        1,
+        2,
+        6,
+        3,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern2/submission_41.py",
+      "integrated_vector": [
+        1,
+        1,
+        1,
+        1,
+        3,
+        3,
+        6,
+        11,
+        8,
+        7,
+        2
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern2/submission_43.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        2,
+        4,
+        3,
+        1,
+        2,
+        1,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern2/submission_5.py",
+      "integrated_vector": [
+        1,
+        1,
+        1,
+        2,
+        6,
+        3,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern2/submission_50.py",
+      "integrated_vector": [
+        1,
+        1,
+        3,
+        2,
+        16,
+        6,
+        3,
+        7,
+        5,
+        5,
+        2
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern2/submission_55.py",
+      "integrated_vector": [
+        1,
+        1,
+        1,
+        0,
+        3,
+        3,
+        7,
+        14,
+        6,
+        5,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern2/submission_6.py",
+      "integrated_vector": [
+        1,
+        1,
+        1,
+        1,
+        3,
+        3,
+        4,
+        6,
+        6,
+        4,
+        2
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern2/submission_65.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        3,
+        8,
+        2,
+        5,
+        2
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern2/submission_67.py",
+      "integrated_vector": [
+        1,
+        1,
+        1,
+        1,
+        3,
+        3,
+        8,
+        17,
+        12,
+        7,
+        2
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern2/submission_81.py",
+      "integrated_vector": [
+        1,
+        1,
+        3,
+        2,
+        7,
+        6,
+        4,
+        8,
+        1,
+        4,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern2/submission_82.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        4,
+        7,
+        2,
+        4,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern3/submission_10.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        3,
+        5,
+        1,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern3/submission_12.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        3,
+        5,
+        1,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern3/submission_18.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        3,
+        5,
+        1,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern3/submission_20.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        6,
+        12,
+        4,
+        3,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern3/submission_23.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        3,
+        3,
+        15,
+        24,
+        10,
+        4,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern3/submission_28.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        4,
+        6,
+        2,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern3/submission_3.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        3,
+        5,
+        1,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern3/submission_31.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        6,
+        10,
+        4,
+        4,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern3/submission_40.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        3,
+        5,
+        1,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern3/submission_47.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        2,
+        3,
+        1,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern3/submission_48.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        3,
+        6,
+        1,
+        3,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern3/submission_49.py",
+      "integrated_vector": [
+        1,
+        2,
+        3,
+        2,
+        7,
+        5,
+        5,
+        8,
+        5,
+        3,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern3/submission_52.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        3,
+        5,
+        1,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern3/submission_54.py",
+      "integrated_vector": [
+        1,
+        1,
+        1,
+        1,
+        2,
+        2,
+        6,
+        7,
+        3,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern3/submission_56.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        4,
+        10,
+        3,
+        4,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern3/submission_57.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        2,
+        3,
+        1,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern3/submission_58.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        3,
+        5,
+        1,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern3/submission_60.py",
+      "integrated_vector": [
+        1,
+        1,
+        1,
+        1,
+        2,
+        2,
+        5,
+        7,
+        4,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern3/submission_61.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        4,
+        5,
+        2,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern3/submission_62.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        3,
+        7,
+        1,
+        4,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern3/submission_75.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern3/submission_76.py",
+      "integrated_vector": [
+        1,
+        1,
+        3,
+        1,
+        8,
+        7,
+        11,
+        28,
+        14,
+        6,
+        3
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern3/submission_78.py",
+      "integrated_vector": [
+        1,
+        1,
+        2,
+        1,
+        5,
+        4,
+        7,
+        15,
+        10,
+        5,
+        2
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern3/submission_8.py",
+      "integrated_vector": [
+        1,
+        2,
+        2,
+        0,
+        7,
+        7,
+        19,
+        41,
+        16,
+        7,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern3/submission_80.py",
+      "integrated_vector": [
+        1,
+        1,
+        3,
+        2,
+        14,
+        6,
+        3,
+        9,
+        7,
+        4,
+        3
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern3/submission_88.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        3,
+        6,
+        2,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern3/submission_9.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        3,
+        5,
+        1,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern3/submission_91.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        3,
+        6,
+        2,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_1.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        4,
+        7,
+        2,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_100.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        3,
+        6,
+        2,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_11.py",
+      "integrated_vector": [
+        1,
+        1,
+        0,
+        0,
+        3,
+        3,
+        7,
+        17,
+        6,
+        6,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_13.py",
+      "integrated_vector": [
+        1,
+        1,
+        1,
+        0,
+        4,
+        4,
+        6,
+        11,
+        3,
+        3,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_14.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        3,
+        9,
+        1,
+        4,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_15.py",
+      "integrated_vector": [
+        1,
+        1,
+        1,
+        0,
+        3,
+        3,
+        4,
+        12,
+        2,
+        6,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_19.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        3,
+        5,
+        1,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_2.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        3,
+        5,
+        1,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_21.py",
+      "integrated_vector": [
+        1,
+        0,
+        1,
+        0,
+        2,
+        2,
+        3,
+        5,
+        1,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_22.py",
+      "integrated_vector": [
+        1,
+        1,
+        2,
+        4,
+        5,
+        4,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_24.py",
+      "integrated_vector": [
+        1,
+        1,
+        1,
+        1,
+        2,
+        2,
+        5,
+        9,
+        2,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_25.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        2,
+        3,
+        1,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_27.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        2,
+        3,
+        1,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_30.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        2,
+        2,
+        5,
+        10,
+        4,
+        3,
+        2
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_34.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        3,
+        7,
+        2,
+        3,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_36.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        4,
+        6,
+        2,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_37.py",
+      "integrated_vector": [
+        1,
+        1,
+        3,
+        4,
+        23,
+        8,
+        9,
+        29,
+        10,
+        6,
+        2
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_4.py",
+      "integrated_vector": [
+        1,
+        3,
+        6,
+        3,
+        512,
+        10,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_42.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        3,
+        5,
+        1,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_44.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        4,
+        7,
+        2,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_45.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        4,
+        9,
+        3,
+        3,
+        2
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_51.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        4,
+        6,
+        2,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_53.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        4,
+        7,
+        2,
+        3,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_59.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        3,
+        5,
+        1,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_64.py",
+      "integrated_vector": [
+        1,
+        1,
+        1,
+        1,
+        3,
+        3,
+        6,
+        9,
+        7,
+        4,
+        2
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_66.py",
+      "integrated_vector": [
+        1,
+        1,
+        1,
+        5,
+        11,
+        7,
+        6,
+        19,
+        8,
+        7,
+        2
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_68.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        4,
+        6,
+        2,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_69.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        3,
+        7,
+        1,
+        3,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_7.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        4,
+        7,
+        2,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_70.py",
+      "integrated_vector": [
+        1,
+        1,
+        4,
+        1,
+        11,
+        7,
+        7,
+        21,
+        14,
+        9,
+        3
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_71.py",
+      "integrated_vector": [
+        1,
+        1,
+        2,
+        1,
+        5,
+        4,
+        7,
+        19,
+        9,
+        4,
+        2
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_72.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        3,
+        6,
+        2,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_73.py",
+      "integrated_vector": [
+        1,
+        1,
+        1,
+        1,
+        4,
+        4,
+        6,
+        13,
+        5,
+        4,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_74.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        4,
+        11,
+        3,
+        6,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_77.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        5,
+        11,
+        4,
+        4,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_83.py",
+      "integrated_vector": [
+        1,
+        1,
+        1,
+        1,
+        2,
+        2,
+        8,
+        17,
+        4,
+        4,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_84.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        4,
+        6,
+        2,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_86.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        3,
+        4,
+        2,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_89.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        3,
+        5,
+        1,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_90.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        5,
+        19,
+        2,
+        6,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_93.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        4,
+        6,
+        2,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_94.py",
+      "integrated_vector": [
+        1,
+        2,
+        3,
+        0,
+        5,
+        5,
+        6,
+        21,
+        5,
+        5,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_95.py",
+      "integrated_vector": [
+        1,
+        0,
+        1,
+        0,
+        2,
+        2,
+        4,
+        6,
+        3,
+        2,
+        2
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_96.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        4,
+        8,
+        3,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_98.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        3,
+        6,
+        2,
+        2,
+        1
+      ]
+    },
+    {
+      "source_file": "../atcoder/submissions_typical90_v/pattern4/submission_99.py",
+      "integrated_vector": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        6,
+        9,
+        3,
+        2,
+        1
+      ]
+    }
+  ],
+  "pattern_centroids": {
+    "metadata": {
+      "timestamp": "2025-12-04T01:27:50.000369",
+      "base_directory": "../atcoder/submissions_typical90_v",
+      "total_patterns": 0,
+      "excludes_other_group": true,
+      "meaningful_patterns_only": true,
+      "feature_dimension": 11,
+      "feature_names": {
+        "cfg_features": [
+          "connected_components",
+          "loop_statements",
+          "conditional_statements",
+          "cycles",
+          "paths",
+          "cyclomatic_complexity"
+        ],
+        "dataflow_features": [
+          "total_reads",
+          "total_writes",
+          "max_reads",
+          "max_writes",
+          "var_count"
+        ]
+      }
+    },
+    "centroids": {
+      "typical90_v": {
+        "centroid_vector": [
+          1.0,
+          0.43478260869565216,
+          0.7391304347826086,
+          1.9673913043478262,
+          129.4891304347826,
+          2.489130434782609,
+          4.173913043478261,
+          8.673913043478262,
+          3.217391304347826,
+          3.217391304347826,
+          1.2065217391304348
+        ],
+        "sample_count": 92,
+        "file_paths": [
+          "../atcoder/submissions_typical90_v/pattern1/submission_17.py",
+          "../atcoder/submissions_typical90_v/pattern1/submission_39.py",
+          "../atcoder/submissions_typical90_v/pattern1/submission_63.py",
+          "../atcoder/submissions_typical90_v/pattern1/submission_87.py",
+          "../atcoder/submissions_typical90_v/pattern1/submission_92.py",
+          "../atcoder/submissions_typical90_v/pattern2/submission_16.py",
+          "../atcoder/submissions_typical90_v/pattern2/submission_29.py",
+          "../atcoder/submissions_typical90_v/pattern2/submission_35.py",
+          "../atcoder/submissions_typical90_v/pattern2/submission_41.py",
+          "../atcoder/submissions_typical90_v/pattern2/submission_43.py",
+          "../atcoder/submissions_typical90_v/pattern2/submission_5.py",
+          "../atcoder/submissions_typical90_v/pattern2/submission_50.py",
+          "../atcoder/submissions_typical90_v/pattern2/submission_55.py",
+          "../atcoder/submissions_typical90_v/pattern2/submission_6.py",
+          "../atcoder/submissions_typical90_v/pattern2/submission_65.py",
+          "../atcoder/submissions_typical90_v/pattern2/submission_67.py",
+          "../atcoder/submissions_typical90_v/pattern2/submission_81.py",
+          "../atcoder/submissions_typical90_v/pattern2/submission_82.py",
+          "../atcoder/submissions_typical90_v/pattern3/submission_10.py",
+          "../atcoder/submissions_typical90_v/pattern3/submission_12.py",
+          "../atcoder/submissions_typical90_v/pattern3/submission_18.py",
+          "../atcoder/submissions_typical90_v/pattern3/submission_20.py",
+          "../atcoder/submissions_typical90_v/pattern3/submission_23.py",
+          "../atcoder/submissions_typical90_v/pattern3/submission_28.py",
+          "../atcoder/submissions_typical90_v/pattern3/submission_3.py",
+          "../atcoder/submissions_typical90_v/pattern3/submission_31.py",
+          "../atcoder/submissions_typical90_v/pattern3/submission_40.py",
+          "../atcoder/submissions_typical90_v/pattern3/submission_47.py",
+          "../atcoder/submissions_typical90_v/pattern3/submission_48.py",
+          "../atcoder/submissions_typical90_v/pattern3/submission_49.py",
+          "../atcoder/submissions_typical90_v/pattern3/submission_52.py",
+          "../atcoder/submissions_typical90_v/pattern3/submission_54.py",
+          "../atcoder/submissions_typical90_v/pattern3/submission_56.py",
+          "../atcoder/submissions_typical90_v/pattern3/submission_57.py",
+          "../atcoder/submissions_typical90_v/pattern3/submission_58.py",
+          "../atcoder/submissions_typical90_v/pattern3/submission_60.py",
+          "../atcoder/submissions_typical90_v/pattern3/submission_61.py",
+          "../atcoder/submissions_typical90_v/pattern3/submission_62.py",
+          "../atcoder/submissions_typical90_v/pattern3/submission_75.py",
+          "../atcoder/submissions_typical90_v/pattern3/submission_76.py",
+          "../atcoder/submissions_typical90_v/pattern3/submission_78.py",
+          "../atcoder/submissions_typical90_v/pattern3/submission_8.py",
+          "../atcoder/submissions_typical90_v/pattern3/submission_80.py",
+          "../atcoder/submissions_typical90_v/pattern3/submission_88.py",
+          "../atcoder/submissions_typical90_v/pattern3/submission_9.py",
+          "../atcoder/submissions_typical90_v/pattern3/submission_91.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_1.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_100.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_11.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_13.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_14.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_15.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_19.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_2.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_21.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_22.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_24.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_25.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_27.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_30.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_34.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_36.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_37.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_4.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_42.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_44.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_45.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_51.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_53.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_59.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_64.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_66.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_68.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_69.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_7.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_70.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_71.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_72.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_73.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_74.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_77.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_83.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_84.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_86.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_89.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_90.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_93.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_94.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_95.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_96.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_98.py",
+          "../atcoder/submissions_typical90_v/pattern4/submission_99.py"
+        ]
+      }
+    }
+  }
+}
