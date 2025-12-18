@@ -75,6 +75,84 @@ FEATURE_WEIGHTS = np.array([
     0.1  # max_writes
 ])
 
+# --- データ標準化クラス（オンライン学習対応） ---
+class OnlineStandardScaler:
+    """
+    オンライン学習でデータの平均と分散を追跡し、標準化を行うクラス
+    増分処理のため、事前に正確な平均・分散は不明だが、長期的に収束する
+    """
+    def __init__(self, n_features):
+        self.n_features = n_features
+        self.n_samples = 0
+        self.mean = np.zeros(n_features)
+        self.M2 = np.zeros(n_features)  # 二乗和の累積
+        self.std = np.ones(n_features)  # 初期値は1（ゼロ除算回避）
+
+    def partial_fit(self, X):
+        """
+        オンラインでデータを追加し、平均と分散を更新（Welfordアルゴリズム）
+
+        Args:
+            X: 新しいデータ（shape: (n_samples, n_features) または (n_features,)）
+        """
+        if X.ndim == 1:
+            X = X.reshape(1, -1)
+
+        for x in X:
+            self.n_samples += 1
+            delta = x - self.mean
+            self.mean += delta / self.n_samples
+            delta2 = x - self.mean
+            self.M2 += delta * delta2
+
+        # 分散と標準偏差を更新
+        if self.n_samples > 1:
+            variance = self.M2 / self.n_samples
+            self.std = np.sqrt(variance)
+            # ゼロ除算を回避（分散が0の特徴量は標準化しない）
+            self.std[self.std == 0] = 1.0
+
+    def transform(self, X):
+        """
+        データを標準化（平均0、分散1に変換）
+
+        Args:
+            X: 標準化するデータ（shape: (n_samples, n_features) または (n_features,)）
+
+        Returns:
+            標準化されたデータ
+        """
+        if self.n_samples == 0:
+            # データがまだない場合はそのまま返す
+            return X
+
+        return (X - self.mean) / self.std
+
+    def fit_transform(self, X):
+        """
+        データを学習して標準化
+
+        Args:
+            X: データ（shape: (n_samples, n_features)）
+
+        Returns:
+            標準化されたデータ
+        """
+        self.partial_fit(X)
+        return self.transform(X)
+
+    def inverse_transform(self, X):
+        """
+        標準化を逆変換（元のスケールに戻す）
+
+        Args:
+            X: 標準化されたデータ
+
+        Returns:
+            元のスケールに戻されたデータ
+        """
+        return X * self.std + self.mean
+
 # --- 距離関数（重み付きユークリッド距離、マンハッタン距離、コサイン距離） ---
 def dist(c, s, metric='euclidean', weights=None):
     if metric == 'euclidean':
@@ -1038,6 +1116,21 @@ def main(algorithm_type: str, dataset_name: str, preloaded_data=None, target_dir
         file_names = None
         file_paths = None
 
+    # --- データの標準化処理（平均0、分散1に正規化） ---
+    print("\n🔄 データ標準化中...")
+    scaler = OnlineStandardScaler(n_features=X.shape[1])
+    X_original = X.copy()  # 元のデータを保存
+    X = scaler.fit_transform(X)  # 標準化されたデータ
+
+    print(f"✅ 標準化完了: 平均={scaler.mean.round(4)}, 標準偏差={scaler.std.round(4)}")
+
+    # 真のセントロイドも標準化
+    true_centers_original = None
+    if true_centers is not None:
+        true_centers_original = true_centers.copy()
+        true_centers = scaler.transform(true_centers)
+        print(f"✅ 真のセントロイドも標準化: {len(true_centers)}個")
+
     # 結果保存用ディレクトリを作成
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     output_dir = f"clustering_results_{timestamp}"
@@ -1047,7 +1140,7 @@ def main(algorithm_type: str, dataset_name: str, preloaded_data=None, target_dir
     C_final, final_labels = None, None
     if algorithm_type == 'general':
         C_final, final_labels = general_kmeans_algorithm(
-            X_data=X,  # 元のデータを使用（前処理なし）
+            X_data=X,  # 標準化されたデータを使用
             k=k_clusters,
             metric='euclidean',
             weights=FEATURE_WEIGHTS if dataset_name == 'real_code_features' else None
@@ -1058,7 +1151,7 @@ def main(algorithm_type: str, dataset_name: str, preloaded_data=None, target_dir
             raise ValueError("正解判定関数を利用したクラスタリングには真のセントロイドが必要です。")
 
         C_final, final_labels = clustering_algorithm_with_correctness(
-            X_data=X,
+            X_data=X,  # 標準化されたデータを使用
             k=k_clusters,
             is_correct_fn=is_correct_fn_factory(true_centers),
             metric='euclidean',
@@ -1068,34 +1161,41 @@ def main(algorithm_type: str, dataset_name: str, preloaded_data=None, target_dir
     else:
         raise ValueError(f"不明なアルゴリズムタイプです: {algorithm_type}. 'general' または 'correctness_guided' を指定してください。")
 
-    # セントロイド距離の計算
+    # セントロイドを元のスケールに戻す（結果保存・可視化用）
+    C_final_original = scaler.inverse_transform(C_final)
+    if true_centers is not None:
+        true_centers_display = true_centers_original
+    else:
+        true_centers_display = None
+
+    # セントロイド距離の計算（標準化された空間で）
     centroid_distance = calculate_average_min_centroid_distance(C_final, true_centers)
 
     # 結果の出力
     print(f"\n📊 {dataset_name} - {algo_title} (k={k_clusters})")
     if true_centers is not None and not np.isnan(centroid_distance):
-        print(f"セントロイド距離: {centroid_distance:.4f}")
+        print(f"セントロイド距離（標準化空間）: {centroid_distance:.4f}")
     print("-" * 50)
 
-    # クラスタリング結果を保存
+    # クラスタリング結果を保存（元のスケールで保存）
     saved_file = save_clustering_results(
         final_labels=final_labels,
-        C_final=C_final,
-        true_centers=true_centers,
+        C_final=C_final_original,  # 元のスケールに戻したセントロイド
+        true_centers=true_centers_display,  # 元のスケールの真のセントロイド
         file_names=file_names,
         file_paths=file_paths,
         algorithm_type=algorithm_type,
         dataset_name=dataset_name,
         k_clusters=k_clusters,
         centroid_distance=centroid_distance,
-        feature_vectors=X,
+        feature_vectors=X_original,  # 元のスケールの特徴量
         output_dir=output_dir
     )
 
-    # クラスタリング結果の詳細表示
-    display_clustering_results(final_labels, C_final, file_names, dataset_name, file_paths, X)
+    # クラスタリング結果の詳細表示（元のスケールで表示）
+    display_clustering_results(final_labels, C_final_original, file_names, dataset_name, file_paths, X_original)
 
-    # 可視化（2次元データまたはPCAで次元削減）
+    # 可視化（標準化されたデータを使用 - より良い可視化のため）
     visualize_clustering_results(X, y_true, final_labels, C_final, true_centers,
                                dataset_name, algo_title, k_clusters, n_features, file_paths, output_dir)
 

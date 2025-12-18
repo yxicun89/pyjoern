@@ -158,6 +158,10 @@ def create_node_labels(graph, graph_type="CFG"):
                         stmt_str = str(stmt)
                         stmt_type = type(stmt).__name__ if hasattr(stmt, '__class__') else 'Unknown'
 
+                        # UnsupportedStmtを含むステートメントはスキップ
+                        if 'UnsupportedStmt' in stmt_str:
+                            continue
+
                         # コンソール出力
                         print(f"[{i}] Type: {stmt_type} | Value: {stmt_str}")
                         if hasattr(stmt, '__dict__'):
@@ -182,15 +186,12 @@ def create_node_labels(graph, graph_type="CFG"):
                                 call = call[:27] + "..."
                             base_label += f"\n[CALL] {call}"
                         else:
-                            # その他のステートメント（生の形式も表示）
+                            # その他の意味のあるステートメント（実際のコード部分）
                             if len(stmt_str) > 30:
                                 display_str = stmt_str[:27] + "..."
                             else:
                                 display_str = stmt_str
-                            base_label += f"\n[{i}] {display_str}"
-                            # デバッグ: ステートメントの詳細なタイプを確認
-                            if stmt_type != 'str':
-                                base_label += f"\n    (Type: {stmt_type})"
+                            base_label += f"\n{display_str}"
 
                     print(f"=== END DEBUG ===\n")
                 else:
@@ -264,9 +265,13 @@ def create_node_labels(graph, graph_type="CFG"):
                     #         base_label += f"\n[STMT] {primary_content}"
                     # else:
 
-                    # 常にすべてのステートメントを詳細表示
+                    # 意味のあるステートメントのみを表示（UnsupportedStmtを除外）
                     for i, stmt in enumerate(node.statements):
                         stmt_str = str(stmt)
+
+                        # UnsupportedStmtを含むステートメントはスキップ
+                        if 'UnsupportedStmt' in stmt_str:
+                            continue
 
                         # ステートメントタイプに応じたプレフィックスを追加
                         if 'Compare:' in stmt_str:
@@ -289,16 +294,12 @@ def create_node_labels(graph, graph_type="CFG"):
                         elif 'iteratorNonEmptyOrException' in stmt_str:
                             base_label += f"\n[LOOP] Iterator check"
                         else:
-                            # その他のステートメント（生の形式も表示）
+                            # その他の意味のあるステートメント（実際のコード部分）
                             if len(stmt_str) > 30:
                                 display_str = stmt_str[:27] + "..."
                             else:
                                 display_str = stmt_str
-                            base_label += f"\n[{i}] {display_str}"
-                            # デバッグ: 特殊なステートメントの詳細を確認
-                            if any(pattern in stmt_str for pattern in ['-8', 'literal', 'Literal', 'FieldAccess', 'Identifier']):
-                                stmt_type = type(stmt).__name__ if hasattr(stmt, '__class__') else 'Unknown'
-                                base_label += f"\n    (Debug: {stmt_type})"
+                            base_label += f"\n{display_str}"
 
                     # すべてのステートメントを表示するため、制限をコメントアウト
                     # if len(node.statements) > 3:
